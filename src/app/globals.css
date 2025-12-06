@@ -10,19 +10,19 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 160 84% 39%;
+    --primary: 240 100% 45%; /* #0000e6 */
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
+    --secondary: 174 100% 43%; /* #00ddd7 */
     --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
+    --muted: 300 100% 72%; /* #fb73ff softened */
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 160 60% 95%;
-    --accent-foreground: 160 84% 25%;
+    --accent: 174 100% 43%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 160 84% 39%;
+    --ring: 240 100% 45%;
     --radius: 0;
   }
 }
@@ -44,12 +44,29 @@
 /* Excel-like cell styles */
 .cell-selected {
   position: relative;
-  box-shadow: inset 0 0 0 1px #3b82f6;
+  box-shadow: inset 0 0 0 2px #0000e6;
   z-index: 10;
+  transition: box-shadow 0.15s ease-out;
 }
 
 .excel-handle {
-  @apply absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 z-20 cursor-crosshair border border-white;
+  @apply absolute -bottom-1 -right-1 w-2 h-2 z-20 cursor-crosshair border border-white;
+  background-color: #0000e6;
+}
+
+/* Buttery smooth focus rings */
+*:focus-visible {
+  outline: 2px solid #0000e6;
+  outline-offset: 2px;
+  transition: outline 0.15s ease-out;
+}
+
+button, a, input, select, textarea {
+  transition: all 0.15s ease-out;
+}
+
+button:hover, a:hover {
+  transform: translateY(-0.5px);
 }
 
 /* Traffic light cell states with smooth transitions

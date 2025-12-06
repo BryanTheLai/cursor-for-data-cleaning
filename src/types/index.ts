@@ -38,6 +38,9 @@ export interface RowData {
   locked: boolean;
   phoneNumber?: string;
   whatsappThreadId?: string;
+  amlFlagReason?: string;
+  amlRiskLevel?: "info" | "watch" | "risk";
+  amlRiskScore?: number;
 }
 
 export interface ColumnDef {

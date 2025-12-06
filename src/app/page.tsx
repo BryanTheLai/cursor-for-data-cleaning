@@ -431,10 +431,10 @@ function RytFlowPreview() {
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-xl">
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-3 flex items-center justify-between">
+      <div className="bg-[#0000e6] text-white px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Zap className="w-5 h-5" />
-          <span className="font-semibold">RytFlow</span>
+          <img src="/ryt logo.png" alt="Ryt Flow" className="h-5 w-auto" />
+          <span className="font-semibold">Ryt Flow</span>
         </div>
         <div className="text-xs bg-white/20 px-2 py-1 rounded">
           Press TAB to accept
@@ -448,7 +448,7 @@ function RytFlowPreview() {
             <span className="text-xs text-gray-600">AI Fix Ready</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-emerald-400 rounded" />
+            <div className="w-3 h-3 bg-[#00ddd7] rounded" />
             <span className="text-xs text-gray-600">Fixed</span>
           </div>
         </div>
@@ -463,14 +463,14 @@ function RytFlowPreview() {
                     idx === currentFix 
                       ? "bg-amber-50 border-l-4 border-l-amber-400" 
                       : idx < currentFix 
-                        ? "bg-emerald-50 border-l-4 border-l-emerald-400"
+                        ? "bg-[#00ddd7]/10 border-l-4 border-l-[#00ddd7]"
                         : "bg-white"
                   }`}
                 >
                   <td className="px-3 py-2 text-xs text-gray-500 w-24">{fix.type}</td>
                   <td className="px-3 py-2 font-mono">
                     {idx < currentFix ? (
-                      <span className="text-emerald-700">{fix.after}</span>
+                      <span className="text-[#0000e6]">{fix.after}</span>
                     ) : idx === currentFix ? (
                       <div className="flex items-center gap-2">
                         <span className="text-gray-400 line-through">{fix.before || "(empty)"}</span>
@@ -491,9 +491,9 @@ function RytFlowPreview() {
         </div>
 
         <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
-          <span>47 issues → <span className="text-emerald-600 font-semibold">30 seconds</span></span>
+          <span>47 issues → <span className="text-[#0000e6] font-semibold">7 seconds</span></span>
           <span className="flex items-center gap-1">
-            <span className="inline-block w-2 h-2 bg-emerald-400 rounded-full animate-ping" />
+            <span className="inline-block w-2 h-2 bg-[#00ddd7] rounded-full animate-ping" />
             Live
           </span>
         </div>
@@ -506,7 +506,7 @@ export default function LandingPage() {
   const [showAfter, setShowAfter] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-[#0000e6] text-white overflow-x-hidden">
       <style jsx global>{`
         @keyframes dialog-pop {
           0% { transform: scale(0.8); opacity: 0; }
@@ -532,27 +532,25 @@ export default function LandingPage() {
         }
       `}</style>
 
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-sm border-b border-white/10">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0000e6]/95 backdrop-blur-sm border-b border-white/20">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-xl tracking-tight">RytFlow</span>
+          <div className="flex items-center gap-3">
+            <img src="/ryt logo.png" alt="Ryt Flow" className="h-8 w-auto" />
+            <span className="font-bold text-xl tracking-tight">Ryt Flow</span>
           </div>
           <Link 
             href="/demo"
-            className="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-5 py-2 rounded-lg transition-all hover:scale-105 flex items-center gap-2"
+            className="bg-[#00ddd7] hover:bg-[#00f5ee] text-[#0000e6] font-semibold px-5 py-2 rounded-lg transition-all duration-200 hover:scale-105 flex items-center gap-2"
           >
             Try Demo <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </nav>
 
-      <section className="pt-24 pb-16 px-6 bg-gradient-to-b from-emerald-950/25 to-transparent">
+      <section className="pt-24 pb-16 px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-1.5 mb-8">
-            <span className="text-emerald-300 text-sm font-medium">For Payment Operations Teams</span>
+          <div className="inline-flex items-center gap-2 bg-[#00ddd7]/20 border border-[#00ddd7]/40 rounded-full px-4 py-1.5 mb-8">
+            <span className="text-[#00ddd7] text-sm font-medium">For Payment Operations Teams</span>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-10 items-center">
@@ -560,7 +558,7 @@ export default function LandingPage() {
               <h1 className="text-5xl md:text-6xl font-bold leading-tight tracking-tight">
                 Stop Cleaning Excel Files
                 <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-300">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00ddd7] to-[#fb73ff]">
                   For 32 Hours Every Week
                 </span>
               </h1>
@@ -572,44 +570,44 @@ export default function LandingPage() {
               <div className="flex flex-wrap gap-4">
                 <Link
                   href="/demo"
-                  className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-8 py-4 rounded-lg text-lg transition-all hover:scale-105 flex items-center gap-2 shadow-lg shadow-emerald-500/25"
+                  className="bg-[#00ddd7] hover:bg-[#00f5ee] text-[#0000e6] font-bold px-8 py-4 rounded-lg text-lg transition-all duration-200 hover:scale-105 flex items-center gap-2 shadow-lg shadow-[#00ddd7]/25"
                 >
                   <Play className="w-5 h-5" /> See the Magic
                 </Link>
                 <button
                   onClick={() => setShowAfter(!showAfter)}
-                  className="bg-white/5 hover:bg-white/15 text-white font-semibold px-8 py-4 rounded-lg text-lg transition-all border border-white/15"
+                  className="bg-white/10 hover:bg-white/20 text-white font-semibold px-8 py-4 rounded-lg text-lg transition-all duration-200 border border-white/20"
                 >
                   {showAfter ? "Show Pain" : "Show Solution"}
                 </button>
               </div>
 
               <div className="grid sm:grid-cols-3 gap-4 text-sm">
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-emerald-300" />
+                <div className="bg-[#00ddd7] rounded-xl p-4 flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-[#0000e6]" />
                   <div>
-                    <div className="text-white font-semibold">47 errors → 30s</div>
-                    <div className="text-gray-400">Python-free cleanup</div>
+                    <div className="text-[#0000e6] font-semibold">47 errors → 7s</div>
+                    <div className="text-[#0000e6]/70">Python-free cleanup</div>
                   </div>
                 </div>
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-3">
-                  <DollarSign className="w-5 h-5 text-emerald-300" />
+                <div className="bg-[#fb73ff] rounded-xl p-4 flex items-center gap-3">
+                  <DollarSign className="w-5 h-5 text-[#0000e6]" />
                   <div>
-                    <div className="text-white font-semibold">70–90% faster</div>
-                    <div className="text-gray-400">No manual Excel triage</div>
+                    <div className="text-[#0000e6] font-semibold">70–90% faster</div>
+                    <div className="text-[#0000e6]/70">No manual Excel triage</div>
                   </div>
                 </div>
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-3">
-                  <AlertTriangle className="w-5 h-5 text-emerald-300" />
+                <div className="bg-white rounded-xl p-4 flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-[#0000e6]" />
                   <div>
-                    <div className="text-white font-semibold">Zero duplicates</div>
-                    <div className="text-gray-400">WhatsApp verification</div>
+                    <div className="text-[#0000e6] font-semibold">Zero duplicates</div>
+                    <div className="text-[#0000e6]/70">WhatsApp verification</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-2xl">
+            <div className="bg-white rounded-2xl p-4 shadow-2xl">
               <RytFlowPreview />
             </div>
           </div>
@@ -622,7 +620,7 @@ export default function LandingPage() {
             <>
               <div className="text-center mb-12">
                 <h2 className="text-3xl font-bold mb-2 text-red-400">The Current Reality</h2>
-                <p className="text-gray-500">Python scripts crack. Excel screams. Email responses take a week.</p>
+                <p className="text-white/80">Python scripts crack. Excel screams. Email responses take a week.</p>
               </div>
 
               <div className="grid lg:grid-cols-2 gap-8 mb-12">
@@ -680,25 +678,25 @@ export default function LandingPage() {
           ) : (
             <>
               <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold mb-2 text-emerald-400">With RytFlow</h2>
-                <p className="text-gray-500">Tab to accept. WhatsApp for missing data. Done.</p>
+                <h2 className="text-3xl font-bold mb-2 text-[#00ddd7]">With Ryt Flow</h2>
+                <p className="text-white/80">Tab to accept. WhatsApp for missing data. Done.</p>
               </div>
 
               <div className="max-w-2xl mx-auto">
                 <RytFlowPreview />
                 
                 <div className="mt-8 grid grid-cols-3 gap-4 text-center">
-                  <div className="bg-white/5 rounded-lg p-4">
-                    <div className="text-3xl font-bold text-emerald-400">30s</div>
-                    <div className="text-xs text-gray-500">Fix 47 errors</div>
+                  <div className="bg-[#00ddd7] rounded-lg p-4">
+                    <div className="text-3xl font-bold text-[#0000e6]">7s</div>
+                    <div className="text-xs text-[#0000e6]/70">Fix 47 errors</div>
                   </div>
-                  <div className="bg-white/5 rounded-lg p-4">
-                    <div className="text-3xl font-bold text-emerald-400">15min</div>
-                    <div className="text-xs text-gray-500">Missing data via WhatsApp</div>
+                  <div className="bg-[#fb73ff] rounded-lg p-4">
+                    <div className="text-3xl font-bold text-[#0000e6]">15min</div>
+                    <div className="text-xs text-[#0000e6]/70">Missing data via WhatsApp</div>
                   </div>
-                  <div className="bg-white/5 rounded-lg p-4">
-                    <div className="text-3xl font-bold text-emerald-400">100%</div>
-                    <div className="text-xs text-gray-500">Duplicates caught</div>
+                  <div className="bg-white rounded-lg p-4">
+                    <div className="text-3xl font-bold text-[#0000e6]">100%</div>
+                    <div className="text-xs text-[#0000e6]/70">Duplicates caught</div>
                   </div>
                 </div>
               </div>
@@ -717,7 +715,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="py-20 px-6 bg-gradient-to-b from-transparent to-emerald-950/30">
+      <section className="py-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Save 32 Hours Every Week?</h2>
           <p className="text-gray-400 mb-8">
@@ -725,20 +723,18 @@ export default function LandingPage() {
           </p>
           <Link
             href="/demo"
-            className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-10 py-5 rounded-lg text-xl transition-all hover:scale-105 shadow-lg shadow-emerald-500/25"
+            className="inline-flex items-center gap-2 bg-[#00ddd7] hover:bg-[#00f5ee] text-[#0000e6] font-bold px-10 py-5 rounded-lg text-xl transition-all duration-200 hover:scale-105 shadow-lg shadow-[#00ddd7]/25"
           >
-            Try RytFlow Now <ArrowRight className="w-6 h-6" />
+            Try Ryt Flow Now <ArrowRight className="w-6 h-6" />
           </Link>
         </div>
       </section>
 
-      <footer className="py-8 px-6 border-t border-white/10">
-        <div className="max-w-7xl mx-auto flex items-center justify-between text-sm text-gray-500">
+      <footer className="py-8 px-6 border-t border-white/20">
+        <div className="max-w-7xl mx-auto flex items-center justify-between text-sm text-white/60">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-emerald-400 to-teal-500 rounded flex items-center justify-center">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
-            <span>RytFlow</span>
+            <img src="/ryt logo.png" alt="Ryt Flow" className="h-6 w-auto" />
+            <span>Ryt Flow</span>
           </div>
           <div>Tab to fix. WhatsApp to verify. Sleep soundly.</div>
         </div>

@@ -9,7 +9,7 @@ type RuleStore = {
   resetRules: () => void;
 };
 
-const storageKey = "dwmtcd-rules";
+const storageKey = "rytflow-rules";
 
 function loadRules(): RuleConfig[] {
   if (typeof window === "undefined") return DEFAULT_RULE_CONFIG;

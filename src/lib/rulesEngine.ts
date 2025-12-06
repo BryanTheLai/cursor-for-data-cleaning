@@ -310,7 +310,7 @@ function validateAccountNumber(value: string): ValidationResult {
       valid: false,
       message: 'Account number must contain only digits',
       severity: 'red',
-      suggestion: 'Request via WhatsApp form',
+ 
     };
   }
   

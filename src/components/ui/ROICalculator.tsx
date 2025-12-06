@@ -76,11 +76,11 @@ export function ROICalculator() {
   )} labor saved monthly`;
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-2xl overflow-hidden">
-      <div className="px-6 py-5 border-b border-gray-700 flex items-center justify-between">
+    <div className="bg-gradient-to-br from-[#0000e6] to-[#0000b3] border border-[#0000e6]/50 rounded-2xl overflow-hidden">
+      <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-            <Calculator className="w-5 h-5 text-emerald-400" />
+          <div className="w-10 h-10 bg-[#00ddd7]/20 rounded-lg flex items-center justify-center">
+            <Calculator className="w-5 h-5 text-[#00ddd7]" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white">ROI Calculator</h3>
@@ -89,24 +89,24 @@ export function ROICalculator() {
         </div>
         <button
           onClick={() => setShowInputs(!showInputs)}
-          className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+          className="text-sm text-[#00ddd7] hover:text-[#00f5ee] transition-colors"
         >
           {showInputs ? "Hide inputs" : "Adjust inputs"}
         </button>
       </div>
 
-      <div className="px-6 py-4 border-b border-gray-800 bg-gray-900/60 text-xs text-gray-300 grid md:grid-cols-3 gap-3">
-        <div className="font-semibold text-gray-200">Simple formula</div>
-        <div className="text-gray-400">
+      <div className="px-6 py-4 border-b border-white/10 bg-[#0000e6]/60 text-xs text-gray-300 grid md:grid-cols-3 gap-3">
+        <div className="font-semibold text-white">Simple formula</div>
+        <div className="text-white/70">
           Monthly savings = (hours × rate × time cut) + (tickets × cost × deflection) + (dup loss × avoidance)
         </div>
-        <div className="text-emerald-300 font-mono text-[11px]">
+        <div className="text-[#00ddd7] font-mono text-[11px]">
           {equation}
         </div>
       </div>
 
       {showInputs && (
-        <div className="px-6 py-4 border-b border-gray-700 bg-gray-800/50 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="px-6 py-4 border-b border-white/10 bg-[#0000cc]/50 grid grid-cols-1 md:grid-cols-3 gap-4">
           <InputSlider
             label="Hours/Month spent cleaning"
             value={inputs.hoursPerMonth}
@@ -193,34 +193,34 @@ export function ROICalculator() {
             label="Labor Saved"
             value={formatCurrency(calculations.laborCostSaved)}
             subtext={`${calculations.laborHoursSaved}h/month`}
-            icon={<Clock className="w-5 h-5 text-blue-400" />}
-            color="blue"
+            icon={<Clock className="w-5 h-5 text-[#00ddd7]" />}
+            color="cyan"
           />
           <MetricCard
             label="Support Saved"
             value={formatCurrency(calculations.supportCostSaved)}
             subtext={`${calculations.ticketsAvoided} tickets avoided`}
-            icon={<Users className="w-5 h-5 text-purple-400" />}
-            color="purple"
+            icon={<Users className="w-5 h-5 text-[#fb73ff]" />}
+            color="pink"
           />
           <MetricCard
             label="Duplicates Avoided"
             value={formatCurrency(calculations.duplicateLossAvoided)}
             subtext="monthly loss avoided"
-            icon={<Zap className="w-5 h-5 text-orange-400" />}
-            color="orange"
+            icon={<Zap className="w-5 h-5 text-[#00ddd7]" />}
+            color="cyan"
           />
           <MetricCard
             label="Teams Scale"
             value={`${inputs.teams}x`}
             subtext={formatCurrency(calculations.scaledMonthlySavings) + " per month"}
-            icon={<Calculator className="w-5 h-5 text-emerald-400" />}
-            color="emerald"
+            icon={<Calculator className="w-5 h-5 text-white" />}
+            color="white"
           />
         </div>
 
-        <div className="bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 rounded-xl p-6 text-center">
-          <p className="text-sm text-emerald-300 mb-1">Total Annual Savings (scaled)</p>
+        <div className="bg-gradient-to-r from-[#00ddd7]/20 to-[#fb73ff]/20 border border-[#00ddd7]/30 rounded-xl p-6 text-center">
+          <p className="text-sm text-[#00ddd7] mb-1">Total Annual Savings (scaled)</p>
           <p className="text-4xl md:text-5xl font-bold text-white mb-1">
             {formatCurrency(calculations.scaledAnnualSavings)}
           </p>
@@ -229,8 +229,8 @@ export function ROICalculator() {
           </p>
         </div>
 
-        <div className="bg-gray-900/60 border border-gray-800 rounded-lg p-4 text-sm text-gray-300 space-y-2">
-          <div className="text-emerald-300 font-semibold">Assumptions</div>
+        <div className="bg-[#0000cc]/40 border border-white/10 rounded-lg p-4 text-sm text-gray-300 space-y-2">
+          <div className="text-[#00ddd7] font-semibold">Assumptions</div>
           <div className="grid md:grid-cols-3 gap-3 text-xs text-gray-400">
             <span>Time cut by {inputs.timeReductionPct}%</span>
             <span>{inputs.ticketReductionPct}% of {inputs.ticketsPerMonth} tickets deflected</span>
@@ -276,14 +276,14 @@ function InputSlider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-1 bg-gray-700 rounded-full appearance-none cursor-pointer
+        className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer
           [&::-webkit-slider-thumb]:appearance-none
           [&::-webkit-slider-thumb]:w-3
           [&::-webkit-slider-thumb]:h-3
-          [&::-webkit-slider-thumb]:bg-emerald-500
+          [&::-webkit-slider-thumb]:bg-[#00ddd7]
           [&::-webkit-slider-thumb]:rounded-full
           [&::-webkit-slider-thumb]:cursor-pointer
-          [&::-webkit-slider-thumb]:hover:bg-emerald-400"
+          [&::-webkit-slider-thumb]:hover:bg-[#00f5ee]"
       />
     </div>
   );
@@ -300,13 +300,12 @@ function MetricCard({
   value: string;
   subtext: string;
   icon: React.ReactNode;
-  color: "blue" | "emerald" | "purple" | "orange";
+  color: "cyan" | "pink" | "white";
 }) {
   const bgColors = {
-    blue: "bg-blue-500/10",
-    emerald: "bg-emerald-500/10",
-    purple: "bg-purple-500/10",
-    orange: "bg-orange-500/10",
+    cyan: "bg-[#00ddd7]/10",
+    pink: "bg-[#fb73ff]/10",
+    white: "bg-white/10",
   };
 
   return (

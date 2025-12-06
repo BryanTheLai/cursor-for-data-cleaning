@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useLayoutEffect, useState } from "react";
-import { X, Check, AlertTriangle, ArrowRight, Clock, Loader2, CheckCircle, Copy, Calendar } from "lucide-react";
+import { X, Check, AlertTriangle, ArrowRight, Clock, Loader2, CheckCircle, Copy, Calendar, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CellStatus } from "@/types";
 import { cn, getFormatDescription } from "@/lib/utils";
@@ -153,22 +153,26 @@ export function AISuggestionPopover({
           isVisible ? "opacity-100" : "opacity-0"
         )}
       >
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 bg-[#0000e6]">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-800">
+            <span className="text-sm font-medium text-white">
               {getStateTitle()}
             </span>
             {status.confidence && (
-              <span className="text-xs text-gray-500">
-                {Math.round(status.confidence * 100)}% confident
+              <span className="text-xs text-white/70">
+                {Math.round(status.confidence * 100)}%
               </span>
             )}
+            <span className="flex items-center gap-1 text-[10px] text-[#00ddd7] bg-white/10 px-1.5 py-0.5 rounded">
+              <Zap className="h-3 w-3" />
+              45ms
+            </span>
           </div>
           <button
             onClick={() => setActiveCell(null)}
-            className="p-1 hover:bg-gray-100 transition-colors"
+            className="p-1 hover:bg-white/20 transition-colors duration-150 rounded"
           >
-            <X className="h-4 w-4 text-gray-400" />
+            <X className="h-4 w-4 text-white/80" />
           </button>
         </div>
 
@@ -258,16 +262,16 @@ export function AISuggestionPopover({
         <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-200 bg-gray-50">
           {status.state === "ai-suggestion" && status.suggestion && (
             <>
-              <Button size="sm" onClick={onApply} className="flex-1 justify-center" title="Accept this fix and move to next issue">
+              <Button size="sm" onClick={onApply} className="flex-1 justify-center bg-[#0000e6] hover:bg-[#0000cc] text-white transition-all duration-150" title="Accept this fix and move to next issue">
                 <Check className="h-4 w-4" />
-                <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-gray-700 text-white">
+                <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-white/20 text-white rounded">
                   Tab
                 </kbd>
               </Button>
-              <Button size="sm" variant="destructive" onClick={onReject} title="Keep original value" className="justify-center bg-red-500 hover:bg-red-600">
+              <Button size="sm" variant="destructive" onClick={onReject} title="Keep original value" className="justify-center bg-[#fb73ff] hover:bg-[#ff8fff] text-[#0000e6] transition-all duration-150">
                 <X className="h-4 w-4" />
-                <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-red-700 text-white">
-                  Esc
+                <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-[#0000e6]/20 text-[#0000e6] rounded">
+                  X
                 </kbd>
               </Button>
             </>
@@ -347,20 +351,22 @@ export function AISuggestionPopover({
                     <AlertTriangle className="h-3 w-3 mr-1" />
                     Override with Reason
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      resolveDuplicate(rowId, columnKey, "skip");
-                      setActiveCell(null);
-                    }}
-                    className="text-red-600 border-red-300 hover:bg-red-50"
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    Skip Row
-                  </Button>
                 </>
               )}
+
+              {/* Skip row for missing or other critical cases */}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  resolveDuplicate(rowId, columnKey, "skip");
+                  setActiveCell(null);
+                }}
+                className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Skip Row
+              </Button>
               
               {/* Override reason input */}
               {showOverrideInput && (

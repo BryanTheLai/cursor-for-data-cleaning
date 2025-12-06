@@ -73,13 +73,19 @@ export function LegendPanel() {
             </kbd>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-gray-600">Fix all in column</span>
+            <span className="text-gray-600">Fix column (by category)</span>
             <kbd className="px-2 py-1 text-xs bg-gray-100 border border-gray-200">
               ⇧ Tab
             </kbd>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-gray-600">Reject / Close</span>
+            <span className="text-gray-600">Reject suggestion</span>
+            <kbd className="px-2 py-1 text-xs bg-gray-100 border border-gray-200">
+              X
+            </kbd>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Minimize / Deselect</span>
             <kbd className="px-2 py-1 text-xs bg-gray-100 border border-gray-200">
               Esc
             </kbd>

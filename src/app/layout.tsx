@@ -16,8 +16,11 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "dwmtcd. — don't waste my time cleaning data",
-  description: "AI-powered data cleaning. Fix messy spreadsheets in seconds, not hours.",
+  title: "Ryt Flow — Banking for power users",
+  description: "Banking-grade data cleaning and compliance flows for power users.",
+  icons: {
+    icon: "/ryt logo.png",
+  },
 };
 
 export default function RootLayout({

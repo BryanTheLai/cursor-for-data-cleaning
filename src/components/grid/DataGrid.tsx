@@ -146,18 +146,22 @@ export function DataGrid() {
     ["ai-suggestion", "duplicate", "critical"].includes(activeCellStatus.state) &&
     !!anchorEl;
 
-  // Tab to accept suggestion and jump to next error
+  // Tab to accept suggestion / proceed past duplicate/critical and jump to next error
   useHotkeys(
     "tab",
     (e) => {
       e.preventDefault();
-      if (activeCell && activeCellStatus?.state === "ai-suggestion") {
-        applySuggestion(activeCell.rowId, activeCell.columnKey);
+      if (activeCell && activeCellStatus) {
+        if (activeCellStatus.state === "ai-suggestion") {
+          applySuggestion(activeCell.rowId, activeCell.columnKey);
+        } else if (activeCellStatus.state === "duplicate") {
+          resolveDuplicate(activeCell.rowId, activeCell.columnKey, "proceed");
+        }
       }
       jumpToNextError();
     },
     { enableOnFormTags: true },
-    [activeCell, activeCellStatus, applySuggestion, jumpToNextError]
+    [activeCell, activeCellStatus, applySuggestion, resolveDuplicate, jumpToNextError]
   );
 
   // Redo shortcut (Ctrl+Y / Cmd+Shift+Z)
@@ -204,10 +208,7 @@ export function DataGrid() {
         setEditingCell(null);
         return;
       }
-      if (activeCell) {
-        rejectSuggestion(activeCell.rowId, activeCell.columnKey);
-        setActiveCell(null);
-      }
+      setActiveCell(null);
     },
     { enableOnFormTags: true }
   );
@@ -441,6 +442,7 @@ export function DataGrid() {
               const hasActiveCell = activeCell?.rowId === row.id;
               const activeCellState = hasActiveCell ? row.status[activeCell.columnKey]?.state : null;
               const isSkippedRow = Object.values(row.status).some((status) => status?.state === "skipped");
+              const isAmlFlagged = !!row.amlFlagReason;
               
               return (
               <tr
@@ -451,11 +453,29 @@ export function DataGrid() {
                   hasActiveCell && activeCellState === "ai-suggestion" && "bg-yellow-50/30",
                   hasActiveCell && activeCellState === "duplicate" && "bg-orange-50/30",
                   hasActiveCell && activeCellState === "critical" && "bg-red-50/30",
+                  isAmlFlagged && row.amlRiskLevel === "risk" && "bg-[#fb73ff]/20 border-l-4 border-l-[#fb73ff]",
+                  isAmlFlagged && row.amlRiskLevel === "watch" && "bg-[#00ddd7]/20 border-l-4 border-l-[#00ddd7]",
+                  isAmlFlagged && row.amlRiskLevel === "info" && "bg-[#0000e6]/10 border-l-4 border-l-[#0000e6]/50",
+                  isAmlFlagged && !row.amlRiskLevel && "bg-[#0000e6]/10 border-l-4 border-l-[#0000e6]/50",
                   isSkippedRow && "line-through decoration-2 decoration-red-400 text-gray-400 animate-skip-fade"
                 )}
+                title={isAmlFlagged ? `AML ${row.amlRiskLevel?.toUpperCase() || "FLAG"}: ${row.amlFlagReason}` : undefined}
               >
-                <td className="w-10 px-2 py-2 text-xs text-gray-400 border-r border-gray-200 bg-gray-50/50 tabular-nums">
-                  {rowIndex + 1}
+                <td className="w-12 px-2 py-2 text-xs text-gray-400 border-r border-gray-200 bg-gray-50/50 tabular-nums">
+                  <div className="flex items-center gap-1">
+                    {isAmlFlagged && (
+                      <span 
+                        className={cn(
+                          "inline-flex h-2 w-2 rounded-full",
+                          row.amlRiskLevel === "risk" && "bg-[#fb73ff]",
+                          row.amlRiskLevel === "watch" && "bg-[#00ddd7]",
+                          (row.amlRiskLevel === "info" || !row.amlRiskLevel) && "bg-[#0000e6]"
+                        )}
+                        aria-label={`AML ${row.amlRiskLevel || "flag"}`}
+                      />
+                    )}
+                    <span>{rowIndex + 1}</span>
+                  </div>
                 </td>
                 {columns.map((column: ColumnDef) => {
                   const isActive =

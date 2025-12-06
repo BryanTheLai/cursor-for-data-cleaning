@@ -131,6 +131,8 @@ export async function sendWhatsAppMessage(
       userMessage = 'Recipient must first join Twilio sandbox. Send "join do-wooden" to +1 415 523 8886 on WhatsApp.';
     } else if (errorMessage.includes('authenticate')) {
       userMessage = 'Twilio authentication failed. Check your TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN.';
+    } else if (errorMessage.includes('Message rate limit exceeded')) {
+      userMessage = 'Message rate limit exceeded. Please try again later.';
     }
     
     return {

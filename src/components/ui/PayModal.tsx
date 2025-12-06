@@ -134,7 +134,7 @@ export function PayModal({ isOpen, onClose }: PayModalProps) {
 
         <div className="px-6 py-3 bg-red-50 border-b border-red-100 text-sm text-red-800 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4" />
-          Pick your own phone number before sending. This demo will WhatsApp the details to your chosen number. Send your number to +14155238886 with code do-wooden before proceeding.
+          Pick your own phone number before sending. This demo will WhatsApp the details to your chosen number. Send your number to +14155238886 with code "join do-wooden" before proceeding.
         </div>
 
         <div className="px-6 py-3 flex items-center gap-3 border-b border-gray-100 bg-gray-50">

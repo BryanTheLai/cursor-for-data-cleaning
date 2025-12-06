@@ -191,8 +191,8 @@ export default function VerifyPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Shield className="h-6 w-6 text-emerald-600" />
-            <h1 className="text-xl font-semibold text-gray-900">
-              dwmtcd<span className="text-emerald-600">.</span> Verification
+            <h1 className="text-xl font-semibold text-[#0000e6]">
+              Ryt Flow Verification
             </h1>
           </div>
           <p className="text-sm text-gray-600">

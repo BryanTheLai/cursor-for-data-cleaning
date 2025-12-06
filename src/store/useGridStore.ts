@@ -37,6 +37,7 @@ interface GridState {
   filter: FilterType;
   isImporting: boolean;
   isPolling: boolean;
+  amlScanStatus: "idle" | "loading" | "success" | "error";
   
   setActiveCell: (cell: ActiveCell | null) => void;
   setFileName: (name: string) => void;
@@ -51,6 +52,7 @@ interface GridState {
   jumpToNextError: () => ActiveCell | null;
   undoLastChange: (rowId: string, columnKey: string) => void;
   redoLastChange: () => void;
+  runAmlScan: () => Promise<void>;
   sendWhatsAppRequest: (
     rowId: string,
     columnKey: string,
@@ -261,6 +263,7 @@ export const useGridStore = create<GridState>((set, get) => {
   filter: "all",
   isImporting: false,
   isPolling: false,
+  amlScanStatus: "idle",
 
   setActiveCell: (cell) => set({ activeCell: cell }),
   setFileName: (name) => set({ fileName: name }),
@@ -553,6 +556,57 @@ export const useGridStore = create<GridState>((set, get) => {
     });
 
     set({ rows: newRows, history: newHistory, redoStack: [] });
+  },
+
+  runAmlScan: async () => {
+    const { rows } = get();
+    set({ amlScanStatus: "loading" });
+
+    try {
+      const payload = {
+        rows: rows.map((row) => ({
+          id: row.id,
+          rowIndex: row.rowIndex,
+          data: row.data,
+        })),
+      };
+
+      const response = await fetch("/api/ai/aml", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const details = await response.json().catch(() => ({}));
+        const message = (details as { error?: string })?.error || "Claude AML scan failed";
+        throw new Error(message);
+      }
+
+      const result = await response.json() as { flags?: Array<{ rowId: string; reason: string; riskLevel?: "info" | "watch" | "risk"; riskScore?: number }> };
+      const flags = result.flags || [];
+      const flagMap = new Map<string, { reason: string; riskLevel?: "info" | "watch" | "risk"; riskScore?: number }>();
+      flags.forEach((flag) => {
+        if (flag?.rowId && flag?.reason) {
+          flagMap.set(flag.rowId, { reason: flag.reason, riskLevel: flag.riskLevel, riskScore: flag.riskScore });
+        }
+      });
+
+      const updatedRows = rows.map((row) => {
+        const flagInfo = flagMap.get(row.id);
+        return {
+          ...row,
+          amlFlagReason: flagInfo?.reason,
+          amlRiskLevel: flagInfo?.riskLevel,
+          amlRiskScore: flagInfo?.riskScore,
+        };
+      });
+
+      set({ rows: updatedRows, amlScanStatus: "success" });
+    } catch (error) {
+      set({ amlScanStatus: "error" });
+      throw error;
+    }
   },
 
   jumpToNextError: () => {

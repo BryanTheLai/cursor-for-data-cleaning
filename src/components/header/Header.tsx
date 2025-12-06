@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Upload, Check, Loader2, Download, Sparkles, Command, Zap, Settings2, MessageCircle } from "lucide-react";
+import { Upload, Check, Loader2, Download, Sparkles, Command, Zap, Settings2, MessageCircle, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGridStore } from "@/store/useGridStore";
 import { ImportWizard, type ImportResult } from "@/components/ImportWizard";
@@ -10,16 +10,18 @@ import { ExportPreview } from "@/components/ui/ExportPreview";
 import { RulesSettings } from "@/components/ui/RulesSettings";
 import { PayModal } from "@/components/ui/PayModal";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 
 type FilterType = "all" | "ai-suggestion" | "duplicate" | "critical";
 
 export function Header() {
-  const { rows, filter, setFilter, fileName, processImportResult, isImporting } = useGridStore();
+  const { rows, filter, setFilter, fileName, processImportResult, isImporting, runAmlScan, amlScanStatus } = useGridStore();
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isRulesSettingsOpen, setIsRulesSettingsOpen] = useState(false);
   const [isPayOpen, setIsPayOpen] = useState(false);
+  const { addToast } = useToast();
 
   const stats = useMemo(() => {
     let suggestions = 0;
@@ -62,16 +64,31 @@ export function Header() {
 
   const isComplete = stats.totalIssues === 0;
 
+  const handleDeepScan = async () => {
+    try {
+      await runAmlScan();
+      addToast("Claude scan complete", "success");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Deep scan failed";
+      addToast(message, "error");
+    }
+  };
+
   return (
     <>
       <header className="sticky top-0 z-40 bg-white">
         <div className="flex items-center gap-3 px-4 h-10">
           {/* Logo */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-            <span className="text-sm font-bold text-gray-900 font-mono">
-              dwmtcd<span className="text-emerald-600">.</span>
-            </span>
+          <div className="flex items-center gap-2 shrink-0">
+            <img src="/ryt logo.png" alt="Ryt Flow" className="h-6 w-auto" />
+            <div className="flex flex-col leading-tight">
+              <span className="text-sm font-bold text-[#0000e6] font-mono">
+                Ryt Flow
+              </span>
+              <span className="text-[10px] text-[#00ddd7] font-mono uppercase tracking-wide">
+                Banking for power users
+              </span>
+            </div>
           </div>
 
           {/* File info */}
@@ -112,11 +129,11 @@ export function Header() {
           <div className="flex items-center gap-1.5 shrink-0">
             <Zap className={cn(
               "h-3.5 w-3.5",
-              isComplete ? "text-emerald-500" : "text-cyan-500"
+              isComplete ? "text-[#00ddd7]" : "text-[#0000e6]"
             )} />
             <span className={cn(
               "text-sm font-bold font-mono tabular-nums",
-              isComplete ? "text-emerald-600" : "text-gray-900"
+              isComplete ? "text-[#00ddd7]" : "text-[#0000e6]"
             )}>
               {stats.percent}%
             </span>
@@ -149,9 +166,25 @@ export function Header() {
               <kbd className="text-[9px] px-1 py-0.5 bg-gray-100 font-mono">⌘K</kbd>
             </button>
 
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={handleDeepScan}
+              disabled={amlScanStatus === "loading"}
+              title="Deep AML scan with Claude"
+            >
+              {amlScanStatus === "loading" ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+              ) : (
+                <ShieldCheck className="h-3.5 w-3.5 mr-1 text-indigo-600" />
+              )}
+              Deep Scan
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
               className="h-6 px-2 text-xs"
               onClick={() => setIsImportOpen(true)}
               disabled={isImporting}
@@ -178,7 +211,7 @@ export function Header() {
 
             <Button
               size="sm"
-              className="h-6 px-2 text-xs bg-emerald-600 hover:bg-emerald-700"
+              className="h-6 px-2 text-xs bg-[#0000e6] hover:bg-[#0000cc] text-white"
               onClick={() => setIsPayOpen(true)}
               title="Resolve all issues before sending payment details via WhatsApp"
               disabled={!isComplete}
@@ -195,8 +228,8 @@ export function Header() {
             className={cn(
               "h-full transition-all duration-500 ease-out",
               isComplete
-                ? "bg-emerald-500"
-                : "bg-gradient-to-r from-cyan-500 via-emerald-500 to-cyan-400"
+                ? "bg-[#00ddd7]"
+                : "bg-gradient-to-r from-[#0000e6] via-[#00ddd7] to-[#0000e6]"
             )}
             style={{ width: `${stats.percent}%` }}
           />
