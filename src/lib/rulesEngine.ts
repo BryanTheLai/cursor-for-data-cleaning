@@ -310,6 +310,7 @@ function validateAccountNumber(value: string): ValidationResult {
       valid: false,
       message: 'Account number must contain only digits',
       severity: 'red',
+      suggestion: 'Request via WhatsApp form',
     };
   }
   
@@ -317,7 +318,8 @@ function validateAccountNumber(value: string): ValidationResult {
     return {
       valid: false,
       message: 'Account number must be 10-16 digits',
-      severity: 'yellow',
+      severity: 'red',
+      suggestion: 'Request via WhatsApp form',
     };
   }
   
@@ -410,8 +412,9 @@ export const PAYROLL_RULES: RuleSet = {
         if (!match) {
           return {
             valid: false,
-            message: 'Unknown bank code',
-            severity: 'yellow',
+            message: 'Missing or invalid bank code',
+            severity: 'red',
+            suggestion: 'Request via WhatsApp form',
           };
         }
         return { valid: true };
@@ -446,12 +449,14 @@ export const PAYROLL_RULES: RuleSet = {
       transform: (value) => transformPhone(value, 'MY'),
       validate: (value) => {
         if (!value) return { valid: true };
-        const phoneRegex = /^\+\d{10,15}$/;
-        if (!phoneRegex.test(value.replace(/[\s\-]/g, ''))) {
+        const cleaned = value.replace(/[\s\-]/g, '');
+        const phoneRegex = /^\+60\d{8,11}$/;
+        if (!phoneRegex.test(cleaned)) {
           return {
             valid: false,
             message: 'Invalid phone number format',
-            severity: 'yellow',
+            severity: 'red',
+            suggestion: 'Request via WhatsApp form',
           };
         }
         return { valid: true };

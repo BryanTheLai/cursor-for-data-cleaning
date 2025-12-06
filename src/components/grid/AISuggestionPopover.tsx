@@ -94,10 +94,25 @@ export function AISuggestionPopover({
   }
 
   const handleWhatsAppRequest = async () => {
+    const missingFields = row
+      ? Object.entries(row.status)
+          .filter(([key, cellStatus]) => {
+            if (!cellStatus) return false;
+            const isCritical = cellStatus.state === "critical";
+            const isMissingSource = cellStatus.source === "missing";
+            const wantsForm = cellStatus.message?.toLowerCase().includes("whatsapp");
+            return isCritical && (isMissingSource || wantsForm || key === columnKey);
+          })
+          .map(([key]) => key)
+      : [columnKey];
+    if (!missingFields.includes(columnKey)) {
+      missingFields.push(columnKey);
+    }
+
     setIsSending(true);
     setSendStatus("idle");
     try {
-      await sendWhatsAppRequest(rowId, columnKey);
+      await sendWhatsAppRequest(rowId, columnKey, { missingFields });
       setSendStatus("success");
     } catch {
       setSendStatus("error");
@@ -150,7 +165,7 @@ export function AISuggestionPopover({
             )}
           </div>
           <button
-            onClick={onReject}
+            onClick={() => setActiveCell(null)}
             className="p-1 hover:bg-gray-100 transition-colors"
           >
             <X className="h-4 w-4 text-gray-400" />

@@ -30,6 +30,7 @@ const selector = (state: GridState) => ({
   getFilteredRows: state.getFilteredRows,
   whatsappRequests: state.whatsappRequests,
   pollForWhatsAppReplies: state.pollForWhatsAppReplies,
+  resolveDuplicate: state.resolveDuplicate,
 });
 
 const AISuggestionPopover = dynamic(
@@ -63,6 +64,7 @@ export function DataGrid() {
     getFilteredRows,
     whatsappRequests,
     pollForWhatsAppReplies,
+    resolveDuplicate,
   } = useGridStore(useShallow(selector));
 
   const filteredRows = useMemo<RowData[]>(() => getFilteredRows(), [rows, filter, getFilteredRows]);
@@ -208,6 +210,27 @@ export function DataGrid() {
       }
     },
     { enableOnFormTags: true }
+  );
+
+  // X to reject or skip
+  useHotkeys(
+    "x",
+    (e) => {
+      if (editingCell || !activeCell || !activeCellStatus) return;
+      if (activeCellStatus.state === "ai-suggestion") {
+        e.preventDefault();
+        rejectSuggestion(activeCell.rowId, activeCell.columnKey);
+        setActiveCell(null);
+        return;
+      }
+      if (activeCellStatus.state === "duplicate" || activeCellStatus.state === "critical") {
+        e.preventDefault();
+        resolveDuplicate(activeCell.rowId, activeCell.columnKey, "skip");
+        setActiveCell(null);
+      }
+    },
+    { enableOnFormTags: false },
+    [editingCell, activeCell, activeCellStatus, rejectSuggestion, resolveDuplicate, setActiveCell]
   );
 
   // Undo shortcut (Cmd+Z / Ctrl+Z)

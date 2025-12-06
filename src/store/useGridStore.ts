@@ -3,7 +3,7 @@ import type { RowData, CellStatus, WhatsAppRequest, HistoryEntry, ColumnDef } fr
 import { MOCK_ROWS, COLUMNS } from "@/data/mockData";
 import { v4 as uuidv4 } from "uuid";
 import { autoFormat } from "@/lib/utils";
-import { PAYROLL_RULES, DEFAULT_RULE_CONFIG, processRowWithRules, getRuleByKey, buildRuleSetFromConfig } from "@/lib/rulesEngine";
+import { PAYROLL_RULES, DEFAULT_RULE_CONFIG, processRowWithRules, getRuleByKey, buildRuleSetFromConfig, getTargetSchemaFromRules } from "@/lib/rulesEngine";
 import { useRuleStore } from "@/store/useRuleStore";
 import type { ImportResult } from "@/components/ImportWizard";
 import { 
@@ -45,7 +45,7 @@ interface GridState {
   hydrateRowsFromImport: (rows: RowData[], fileName?: string) => void;
   processImportResult: (result: ImportResult) => Promise<void>;
   submitMissingField: (rowId: string, columnKey: string, value: string) => void;
-  applySuggestion: (rowId: string, columnKey: string) => void;
+  applySuggestion: (rowId: string, columnKey: string) => Promise<void>;
   rejectSuggestion: (rowId: string, columnKey: string) => void;
   applyColumnFix: (columnKey: string) => void;
   jumpToNextError: () => ActiveCell | null;
@@ -69,7 +69,7 @@ interface GridState {
   receiveWhatsAppReply: (requestId: string, value: string) => void;
   pollForWhatsAppReplies: () => Promise<void>;
   handleFormSubmission: (rowId: string, data: Record<string, string>) => void;
-  updateCellValue: (rowId: string, columnKey: string, value: string) => void;
+  updateCellValue: (rowId: string, columnKey: string, value: string) => Promise<void>;
   setCellStatus: (rowId: string, columnKey: string, status: CellStatus) => void;
   resolveDuplicate: (rowId: string, columnKey: string, action: "proceed" | "skip") => void;
   overrideCritical: (rowId: string, columnKey: string, reason: string) => void;
@@ -80,6 +80,170 @@ interface GridState {
 let historySeeded = false;
 
 export const useGridStore = create<GridState>((set, get) => {
+  const getActiveRuleSet = () => {
+    const ruleConfigs = useRuleStore.getState().rules;
+    return buildRuleSetFromConfig(
+      ruleConfigs && ruleConfigs.length > 0 ? ruleConfigs : DEFAULT_RULE_CONFIG,
+      PAYROLL_RULES
+    );
+  };
+
+  const buildTargetColumns = () => {
+    const activeRuleSet = getActiveRuleSet();
+    return getTargetSchemaFromRules(activeRuleSet).map((col) => ({
+      key: col.key,
+      label: col.label,
+      rules: col.rules,
+    }));
+  };
+
+  const applyValidationResult = (
+    row: RowData,
+    updatedData: Record<string, string>,
+    changes: Array<{ column: string; original: string; cleaned: string; reason: string }>,
+    errors: Array<{ column: string; message: string; severity: "yellow" | "red"; suggestion?: string; confidence?: number }>
+  ) => {
+    const nextStatus: Record<string, CellStatus> = { ...row.status };
+    Object.keys(updatedData).forEach((key) => {
+      nextStatus[key] = { state: "validated", source: "ai" };
+    });
+
+    for (const change of changes) {
+      nextStatus[change.column] = {
+        state: "ai-suggestion",
+        originalValue: updatedData[change.column],
+        suggestion: change.cleaned,
+        confidence: 0.9,
+        message: change.reason,
+        source: "ai",
+      };
+    }
+
+    for (const error of errors) {
+      const needsForm = error.severity === "red" || error.message.toLowerCase().includes("unknown bank");
+      nextStatus[error.column] = {
+        state: needsForm ? "critical" : "ai-suggestion",
+        message: needsForm ? "Request via WhatsApp form" : error.message,
+        source: error.message.includes("Missing") ? "missing" : "ai",
+        suggestion: error.suggestion,
+        confidence: error.confidence,
+      };
+    }
+
+    return nextStatus;
+  };
+
+  const validateRowWithGroq = async (rowData: Record<string, string>, workspaceId: string | null) => {
+    const targetColumns = buildTargetColumns();
+    const response = await fetch("/api/ai/clean", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rowData,
+        targetColumns,
+        workspaceId: workspaceId || undefined,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Groq validation failed");
+    }
+
+    const result = await response.json();
+    return {
+      changes: result.changes as Array<{ column: string; original: string; cleaned: string; reason: string }>,
+      errors: result.errors as Array<{ column: string; message: string; severity: "yellow" | "red"; suggestion?: string; confidence?: number }>,
+    };
+  };
+
+  const validateRowWithRules = (rowData: Record<string, string>) => {
+    const activeRuleSet = getActiveRuleSet();
+    const ruleResult = processRowWithRules(rowData, activeRuleSet);
+    return {
+      changes: ruleResult.changes,
+      errors: ruleResult.errors,
+    };
+  };
+
+  const validateAndUpdateCell = async (
+    rowId: string,
+    columnKey: string,
+    value: string,
+    action: "ai-fix" | "manual",
+    options?: { revalidate?: boolean }
+  ) => {
+    const { rows, history, workspaceId } = get();
+    const rowIndex = rows.findIndex((r) => r.id === rowId);
+    if (rowIndex === -1) return;
+
+    const row = rows[rowIndex];
+    const previousValue = row.data[columnKey];
+    const { normalized } = autoFormat(value, columnKey);
+
+    const revalidate = options?.revalidate ?? true;
+
+    if (!revalidate) {
+      const newRows = [...rows];
+      newRows[rowIndex] = {
+        ...row,
+        data: { ...row.data, [columnKey]: normalized },
+        status: {
+          ...row.status,
+          [columnKey]: { state: "validated", source: "ai" },
+        },
+      };
+
+      const historyEntry: HistoryEntry = {
+        id: uuidv4(),
+        rowId,
+        columnKey,
+        previousValue,
+        newValue: normalized,
+        action,
+        timestamp: new Date(),
+      };
+
+      set({ rows: newRows, history: [...history, historyEntry] });
+      return;
+    }
+
+    const updatedData = { ...row.data, [columnKey]: normalized };
+
+    let changes: Array<{ column: string; original: string; cleaned: string; reason: string }> = [];
+    let errors: Array<{ column: string; message: string; severity: "yellow" | "red"; suggestion?: string; confidence?: number }> = [];
+
+    try {
+      const result = await validateRowWithGroq(updatedData, workspaceId);
+      changes = result.changes;
+      errors = result.errors;
+    } catch {
+      const fallback = validateRowWithRules(updatedData);
+      changes = fallback.changes;
+      errors = fallback.errors;
+    }
+
+    const nextStatus = applyValidationResult(row, updatedData, changes, errors);
+
+    const newRows = [...rows];
+    newRows[rowIndex] = {
+      ...row,
+      data: updatedData,
+      status: nextStatus,
+    };
+
+    const historyEntry: HistoryEntry = {
+      id: uuidv4(),
+      rowId,
+      columnKey,
+      previousValue,
+      newValue: normalized,
+      action,
+      timestamp: new Date(),
+    };
+
+    set({ rows: newRows, history: [...history, historyEntry] });
+  };
+
   if (!historySeeded) {
     seedDemoHistory();
     historySeeded = true;
@@ -326,9 +490,9 @@ export const useGridStore = create<GridState>((set, get) => {
     set({ rows: newRows, history: [...history, historyEntry], redoStack: [] });
   },
 
-  applySuggestion: (rowId, columnKey) => {
+  applySuggestion: async (rowId, columnKey) => {
     console.log("[STORE] Applying suggestion", { rowId, columnKey });
-    const { rows, history } = get();
+    const { rows } = get();
     const rowIndex = rows.findIndex((r) => r.id === rowId);
     if (rowIndex === -1) return;
 
@@ -336,30 +500,8 @@ export const useGridStore = create<GridState>((set, get) => {
     const cellStatus = row.status[columnKey];
     if (!cellStatus?.suggestion) return;
 
-    const previousValue = row.data[columnKey];
     const newValue = cellStatus.suggestion;
-
-    const newRows = [...rows];
-    newRows[rowIndex] = {
-      ...row,
-      data: { ...row.data, [columnKey]: newValue },
-      status: {
-        ...row.status,
-        [columnKey]: { state: "validated", source: cellStatus.source },
-      },
-    };
-
-    const historyEntry: HistoryEntry = {
-      id: uuidv4(),
-      rowId,
-      columnKey,
-      previousValue,
-      newValue,
-      action: "ai-fix",
-      timestamp: new Date(),
-    };
-
-    set({ rows: newRows, history: [...history, historyEntry] });
+    await validateAndUpdateCell(rowId, columnKey, newValue, "ai-fix", { revalidate: false });
   },
 
   rejectSuggestion: (rowId, columnKey) => {
@@ -553,6 +695,10 @@ export const useGridStore = create<GridState>((set, get) => {
       return;
     }
 
+    const filteredExisting = whatsappRequests.filter(
+      (r) => !(r.rowId === rowId && r.missingField === columnKey)
+    );
+
     const request: WhatsAppRequest = {
       id: uuidv4(),
       rowId,
@@ -573,7 +719,7 @@ export const useGridStore = create<GridState>((set, get) => {
 
     set({
       rows: newRows,
-      whatsappRequests: [...whatsappRequests, request],
+      whatsappRequests: [...filteredExisting, request],
     });
 
     try {
@@ -797,37 +943,8 @@ export const useGridStore = create<GridState>((set, get) => {
     }, 2000);
   },
 
-  updateCellValue: (rowId, columnKey, value) => {
-    const { rows, history } = get();
-    const rowIndex = rows.findIndex((r) => r.id === rowId);
-    if (rowIndex === -1) return;
-
-    const row = rows[rowIndex];
-    const previousValue = row.data[columnKey];
-    
-    const { normalized } = autoFormat(value, columnKey);
-
-    const newRows = [...rows];
-    newRows[rowIndex] = {
-      ...row,
-      data: { ...row.data, [columnKey]: normalized },
-      status: {
-        ...row.status,
-        [columnKey]: { state: "validated", source: "ai" },
-      },
-    };
-
-    const historyEntry: HistoryEntry = {
-      id: uuidv4(),
-      rowId,
-      columnKey,
-      previousValue,
-      newValue: normalized,
-      action: "manual",
-      timestamp: new Date(),
-    };
-
-    set({ rows: newRows, history: [...history, historyEntry] });
+  updateCellValue: async (rowId, columnKey, value) => {
+    await validateAndUpdateCell(rowId, columnKey, value, "manual");
   },
 
   setCellStatus: (rowId, columnKey, status) => {
