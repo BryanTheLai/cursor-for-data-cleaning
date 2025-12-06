@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
   const recentlySubmitted = demoStore.getRecentlySubmitted();
   
   if (recentlySubmitted.length > 0) {
+    recentlySubmitted.forEach(r => demoStore.markAsProcessed(r.id));
+    
     return NextResponse.json({
       hasUpdates: true,
       submissions: recentlySubmitted.map(r => ({

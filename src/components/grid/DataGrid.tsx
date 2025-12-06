@@ -1,18 +1,51 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useState } from "react";
+import dynamic from "next/dynamic";
+import { useRef, useEffect, useCallback, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { useShallow } from "zustand/react/shallow";
 import { useGridStore } from "@/store/useGridStore";
 import { GridCell } from "./GridCell";
-import { AISuggestionPopover } from "./AISuggestionPopover";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import type { RowData, ColumnDef } from "@/types";
+
+type GridState = ReturnType<typeof useGridStore.getState>;
+
+const selector = (state: GridState) => ({
+  rows: state.rows,
+  columns: state.columns,
+  activeCell: state.activeCell,
+  filter: state.filter,
+  setActiveCell: state.setActiveCell,
+  applySuggestion: state.applySuggestion,
+  rejectSuggestion: state.rejectSuggestion,
+  applyColumnFix: state.applyColumnFix,
+  jumpToNextError: state.jumpToNextError,
+  undoLastChange: state.undoLastChange,
+  updateCellValue: state.updateCellValue,
+  history: state.history,
+  getFilteredRows: state.getFilteredRows,
+});
+
+const AISuggestionPopover = dynamic(
+  () => import("./AISuggestionPopover").then((mod) => mod.AISuggestionPopover),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="fixed z-50 px-3 py-2 text-xs text-gray-500 bg-white border border-gray-200 shadow-sm">
+        Loading...
+      </div>
+    ),
+  }
+);
 
 export function DataGrid() {
   const {
     rows,
     columns,
     activeCell,
+    filter,
     setActiveCell,
     applySuggestion,
     rejectSuggestion,
@@ -22,15 +55,29 @@ export function DataGrid() {
     updateCellValue,
     history,
     getFilteredRows,
-  } = useGridStore();
+  } = useGridStore(useShallow(selector));
 
-  const filteredRows = getFilteredRows();
+  const filteredRows = useMemo<RowData[]>(() => getFilteredRows(), [rows, filter]);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const activeCellRef = useRef<HTMLTableCellElement | null>(null);
   const { addToast } = useToast();
   const [recentlyFixed, setRecentlyFixed] = useState<Set<string>>(new Set());
   const [editingCell, setEditingCell] = useState<{ rowId: string; columnKey: string } | null>(null);
+
+  useEffect(() => {
+    const prefetch = () => {
+      import("./AISuggestionPopover");
+    };
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(prefetch);
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = globalThis.setTimeout(prefetch, 200);
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   // Get active cell status for popover
   const getActiveCellStatus = useCallback(() => {
@@ -286,7 +333,7 @@ export function DataGrid() {
             </tr>
           </thead>
           <tbody>
-            {filteredRows.map((row, rowIndex) => {
+            {filteredRows.map((row: RowData, rowIndex: number) => {
               const hasActiveCell = activeCell?.rowId === row.id;
               const activeCellState = hasActiveCell ? row.status[activeCell.columnKey]?.state : null;
               
@@ -305,7 +352,7 @@ export function DataGrid() {
                 <td className="w-10 px-2 py-2 text-xs text-gray-400 border-r border-gray-200 bg-gray-50/50 tabular-nums">
                   {rowIndex + 1}
                 </td>
-                {columns.map((column) => {
+                {columns.map((column: ColumnDef) => {
                   const isActive =
                     activeCell?.rowId === row.id &&
                     activeCell?.columnKey === column.key;

@@ -9,13 +9,25 @@ export type CellState =
 
 export type ValidationSeverity = "yellow" | "orange" | "red" | "purple" | "green";
 
+export interface DuplicateInfo {
+  matchedRowId: string;
+  matchedAt: Date;
+  matchedData: {
+    name: string;
+    amount: string;
+    accountNumber: string;
+  };
+  similarity: number;
+}
+
 export interface CellStatus {
   state: CellState;
   originalValue?: string;
   suggestion?: string;
   confidence?: number;
   message?: string;
-  source?: "ai" | "duplicate" | "missing" | "pdf" | "whatsapp";
+  source?: "ai" | "duplicate" | "missing" | "pdf" | "whatsapp" | "sanction";
+  duplicateInfo?: DuplicateInfo;
 }
 
 export interface RowData {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { AlertTriangle, XCircle, CheckCircle2, Pencil, ArrowRight } from "lucide-react";
 import { useGridStore } from "@/store/useGridStore";
 import { cn, getFormatDescription } from "@/lib/utils";
 
@@ -9,62 +10,17 @@ interface Issue {
   rowId: string;
   columnKey: string;
   type: "ai-suggestion" | "duplicate" | "critical";
-  priority: number;
+  priority: number; // Lower = fix first
   message: string;
   originalValue?: string;
   suggestion?: string;
   confidence?: number;
 }
 
-function SparklesIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/>
-      <path d="M5 19l.5 1.5L7 21l-1.5.5L5 23l-.5-1.5L3 21l1.5-.5L5 19z"/>
-      <path d="M19 13l.5 1.5L21 15l-1.5.5L19 17l-.5-1.5L17 15l1.5-.5L19 13z"/>
-    </svg>
-  );
-}
-
-function CopyIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-    </svg>
-  );
-}
-
-function AlertIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <line x1="12" y1="8" x2="12" y2="12"/>
-      <line x1="12" y1="16" x2="12.01" y2="16"/>
-    </svg>
-  );
-}
-
-function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12"/>
-    </svg>
-  );
-}
-
-function ArrowIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="5" y1="12" x2="19" y2="12"/>
-      <polyline points="12 5 19 12 12 19"/>
-    </svg>
-  );
-}
-
 export function IssuesPanel() {
   const { rows, columns, activeCell, setActiveCell, applySuggestion, applyColumnFix, resolveDuplicate } = useGridStore();
 
+  // Collect and sort all issues
   const issues = useMemo(() => {
     const allIssues: Issue[] = [];
 
@@ -74,8 +30,10 @@ export function IssuesPanel() {
           return;
         }
 
+        // Priority: AI suggestions (easy fixes) first, then duplicates, then critical
         let priority = 0;
         if (status.state === "ai-suggestion") {
+          // Higher confidence = easier fix = lower priority number
           priority = status.confidence ? 10 - Math.floor(status.confidence * 10) : 5;
         } else if (status.state === "duplicate") {
           priority = 20;
@@ -97,9 +55,11 @@ export function IssuesPanel() {
       });
     });
 
+    // Sort by priority (lower first = easier fixes first)
     return allIssues.sort((a, b) => a.priority - b.priority);
   }, [rows]);
 
+  // Group issues by type for summary
   const grouped = useMemo(() => {
     return {
       aiSuggestions: issues.filter((i) => i.type === "ai-suggestion"),
@@ -108,6 +68,7 @@ export function IssuesPanel() {
     };
   }, [issues]);
 
+  // Group AI suggestions by column for category-based fixing
   const suggestionsByColumn = useMemo(() => {
     const byColumn: Record<string, Issue[]> = {};
     grouped.aiSuggestions.forEach((issue) => {
@@ -146,6 +107,7 @@ export function IssuesPanel() {
 
   const handleEditCell = (issue: Issue, e: React.MouseEvent) => {
     e.stopPropagation();
+    // Navigate to cell - the user can then double-click or press Enter/F2 to edit
     setActiveCell({ rowId: issue.rowId, columnKey: issue.columnKey });
   };
 
@@ -162,58 +124,49 @@ export function IssuesPanel() {
 
   if (issues.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/25">
-          <CheckIcon className="w-8 h-8 text-white" />
-        </div>
-        <p className="text-base font-semibold text-gray-900">All Clear!</p>
-        <p className="text-sm text-gray-500 mt-1">No issues found in your data</p>
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+        <CheckCircle2 className="h-12 w-12 text-green-500 mb-3" />
+        <p className="text-sm font-medium text-gray-900">All Clear!</p>
+        <p className="text-xs text-gray-500 mt-1">No issues found in your data</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-gray-100 space-y-4">
+      {/* Summary header */}
+      <div className="p-4 border-b border-gray-200 bg-gray-50 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-gray-900">Issues</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Click to navigate, fix issues one by one</p>
+            <h3 className="text-sm font-semibold text-gray-700">Issues</h3>
+            <p className="text-[10px] text-gray-500 mt-0.5">Click to navigate, fix issues one by one</p>
           </div>
-          <div className="flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
-            <span className="tabular-nums">{issues.length}</span>
-            <span>total</span>
-          </div>
+          <span className="text-xs text-gray-500 tabular-nums bg-gray-100 px-1.5 py-0.5">{issues.length} total</span>
         </div>
         
         {grouped.aiSuggestions.length > 0 && (
           <div className="space-y-2">
             <button
               onClick={() => handleFixAllType("ai-suggestion")}
-              className="w-full text-left px-4 py-3 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/60 rounded-xl hover:from-amber-100 hover:to-yellow-100 transition-all group"
+              className="w-full text-left px-3 py-2 bg-amber-50 border border-amber-200 text-xs hover:bg-amber-100 transition-colors"
+              title="Apply all suggested fixes at once"
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center shadow-sm shadow-amber-500/30">
-                    <SparklesIcon className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-sm font-semibold text-amber-900">
-                    Fix all {grouped.aiSuggestions.length} suggestions
-                  </span>
-                </div>
-                <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-md group-hover:bg-amber-200 transition-colors">
-                  Batch
+                <span className="text-amber-800 font-medium">
+                  Fix all {grouped.aiSuggestions.length} suggestions
                 </span>
+                <span className="text-amber-600 text-[10px] bg-amber-100 px-1.5 py-0.5">Batch</span>
               </div>
             </button>
             
             {Object.keys(suggestionsByColumn).length > 1 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {Object.entries(suggestionsByColumn).map(([columnKey, columnIssues]) => (
                   <button
                     key={columnKey}
                     onClick={() => handleFixByColumn(columnKey)}
-                    className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-medium hover:bg-amber-50 hover:border-amber-200 transition-all rounded-lg text-gray-700 hover:text-amber-800"
+                    className="px-2 py-1 bg-white border border-amber-200 text-[10px] hover:bg-amber-50 transition-colors text-amber-700"
+                    title={`Fix all ${getColumnHeader(columnKey)} issues`}
                   >
                     {getColumnHeader(columnKey)} ({columnIssues.length})
                   </button>
@@ -227,16 +180,14 @@ export function IssuesPanel() {
       <div className="flex-1 overflow-y-auto">
         {grouped.aiSuggestions.length > 0 && (
           <div className="border-b border-gray-100">
-            <div className="px-4 py-3 bg-gradient-to-r from-amber-50/80 to-transparent flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center">
-                  <SparklesIcon className="w-3.5 h-3.5 text-white" />
-                </div>
-                <span className="text-sm font-semibold text-amber-900">
+            <div className="px-4 py-2 bg-yellow-50/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Pencil className="h-3 w-3 text-yellow-700" />
+                <span className="text-xs font-medium text-yellow-800">
                   Suggested Fixes ({grouped.aiSuggestions.length})
                 </span>
               </div>
-              <span className="text-xs text-amber-600 font-medium">Auto-corrections</span>
+              <span className="text-[10px] text-yellow-600">Auto-corrections</span>
             </div>
             {grouped.aiSuggestions.map((issue) => (
               <IssueItem
@@ -252,18 +203,17 @@ export function IssuesPanel() {
           </div>
         )}
 
+        {/* Duplicates */}
         {grouped.duplicates.length > 0 && (
           <div className="border-b border-gray-100">
-            <div className="px-4 py-3 bg-gradient-to-r from-orange-50/80 to-transparent flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center">
-                  <CopyIcon className="w-3.5 h-3.5 text-white" />
-                </div>
-                <span className="text-sm font-semibold text-orange-900">
+            <div className="px-4 py-2 bg-orange-50/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-orange-600" />
+                <span className="text-xs font-medium text-orange-800">
                   Duplicates ({grouped.duplicates.length})
                 </span>
               </div>
-              <span className="text-xs text-orange-600 font-medium">Potential repeats</span>
+              <span className="text-[10px] text-orange-600">Potential repeats</span>
             </div>
             {grouped.duplicates.map((issue) => (
               <IssueItem
@@ -280,18 +230,17 @@ export function IssuesPanel() {
           </div>
         )}
 
+        {/* Critical */}
         {grouped.critical.length > 0 && (
           <div>
-            <div className="px-4 py-3 bg-gradient-to-r from-red-50/80 to-transparent flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center">
-                  <AlertIcon className="w-3.5 h-3.5 text-white" />
-                </div>
-                <span className="text-sm font-semibold text-red-900">
+            <div className="px-4 py-2 bg-red-50/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <XCircle className="h-3.5 w-3.5 text-red-600" />
+                <span className="text-xs font-medium text-red-800">
                   Critical ({grouped.critical.length})
                 </span>
               </div>
-              <span className="text-xs text-red-600 font-medium">Needs manual review</span>
+              <span className="text-[10px] text-red-600">Needs manual review</span>
             </div>
             {grouped.critical.map((issue) => (
               <IssueItem
@@ -333,21 +282,15 @@ function IssueItem({
   onEdit?: (e: React.MouseEvent) => void;
 }) {
   const bgColor = {
-    "ai-suggestion": "hover:bg-amber-50/50",
-    duplicate: "hover:bg-orange-50/50",
-    critical: "hover:bg-red-50/50",
+    "ai-suggestion": "hover:bg-yellow-50",
+    duplicate: "hover:bg-orange-50",
+    critical: "hover:bg-red-50",
   }[issue.type];
 
   const activeBg = {
-    "ai-suggestion": "bg-amber-50 ring-2 ring-amber-300 ring-inset",
-    duplicate: "bg-orange-50 ring-2 ring-orange-300 ring-inset",
-    critical: "bg-red-50 ring-2 ring-red-300 ring-inset",
-  }[issue.type];
-
-  const rowBadgeStyle = {
-    "ai-suggestion": "bg-amber-100 text-amber-700 border-amber-200",
-    duplicate: "bg-orange-100 text-orange-700 border-orange-200",
-    critical: "bg-red-100 text-red-700 border-red-200",
+    "ai-suggestion": "bg-yellow-50 ring-1 ring-yellow-200",
+    duplicate: "bg-orange-50 ring-1 ring-orange-200",
+    critical: "bg-red-50 ring-1 ring-red-200",
   }[issue.type];
 
   const formatHint = getFormatDescription(issue.columnKey);
@@ -359,26 +302,21 @@ function IssueItem({
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onClick()}
       className={cn(
-        "w-full text-left px-4 py-3 border-b border-gray-50 transition-all cursor-pointer",
+        "w-full text-left px-4 py-2.5 border-b border-gray-50 transition-all cursor-pointer",
         bgColor,
         isActive && activeBg
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className={cn(
-              "font-mono text-[11px] font-semibold px-1.5 py-0.5 rounded border",
-              rowBadgeStyle
-            )}>
-              R{rowNumber}
-            </span>
-            <span className="text-sm font-medium text-gray-800">{columnHeader}</span>
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <span className="font-mono text-[10px] bg-gray-100 px-1">R{rowNumber}</span>
+            <span className="font-medium text-gray-700">{columnHeader}</span>
             {issue.confidence && (
               <span className={cn(
-                "text-[11px] font-semibold px-1.5 py-0.5 rounded-full",
-                issue.confidence >= 0.9 ? "bg-emerald-100 text-emerald-700" :
-                issue.confidence >= 0.7 ? "bg-amber-100 text-amber-700" :
+                "px-1 py-0.5 text-[10px]",
+                issue.confidence >= 0.9 ? "bg-green-100 text-green-700" :
+                issue.confidence >= 0.7 ? "bg-yellow-100 text-yellow-700" :
                 "bg-orange-100 text-orange-700"
               )}>
                 {Math.round(issue.confidence * 100)}%
@@ -387,58 +325,66 @@ function IssueItem({
           </div>
           
           {issue.originalValue && issue.suggestion && (
-            <div className="mt-2 flex items-center gap-2 text-sm">
-              <span className="text-gray-400 line-through truncate max-w-[100px] font-mono" title={issue.originalValue}>
+            <div className="mt-1.5 flex items-center gap-1.5 text-xs">
+              <span className="text-gray-400 line-through truncate max-w-[80px]" title={issue.originalValue}>
                 {issue.originalValue}
               </span>
-              <ArrowIcon className="w-4 h-4 text-gray-400 shrink-0" />
-              <span className="text-gray-900 font-semibold truncate font-mono" title={issue.suggestion}>
+              <ArrowRight className="h-3 w-3 text-gray-400 shrink-0" />
+              <span className="text-gray-900 font-medium truncate" title={issue.suggestion}>
                 {issue.suggestion}
               </span>
             </div>
           )}
           
           {issue.message && !issue.suggestion && (
-            <p className="mt-1.5 text-sm text-gray-600 truncate" title={issue.message}>{issue.message}</p>
+            <p className="mt-1 text-xs text-gray-600 truncate" title={issue.message}>{issue.message}</p>
           )}
 
+          {/* Format hint for suggestions */}
           {formatHint && issue.type === "ai-suggestion" && (
-            <p className="mt-1.5 text-xs text-gray-400">
+            <p className="mt-1 text-[10px] text-gray-400">
               Format: {formatHint}
             </p>
           )}
         </div>
 
+        {/* AI Suggestion actions */}
         {onQuickFix && issue.type === "ai-suggestion" && (
           <button
             onClick={onQuickFix}
-            className="shrink-0 px-3 py-1.5 text-xs font-semibold bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg transition-all shadow-sm hover:shadow-md active:scale-95"
+            className="shrink-0 px-2 py-1 text-[10px] font-medium bg-yellow-100 hover:bg-yellow-200 text-yellow-800 transition-colors"
+            title="Apply this fix"
           >
             Fix
           </button>
         )}
 
+        {/* Duplicate actions */}
         {issue.type === "duplicate" && (
-          <div className="flex gap-2 shrink-0">
+          <div className="flex gap-1 shrink-0">
             <button
               onClick={onDuplicateProceed}
-              className="px-3 py-1.5 text-xs font-semibold bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg transition-all shadow-sm hover:shadow-md active:scale-95"
+              className="px-2 py-1 text-[10px] font-medium bg-green-100 hover:bg-green-200 text-green-800 transition-colors"
+              title="Keep this payment - it's intentional"
             >
               OK
             </button>
             <button
               onClick={onDuplicateSkip}
-              className="px-3 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all"
+              className="px-2 py-1 text-[10px] font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+              title="Remove from batch - it's a duplicate"
             >
               Skip
             </button>
           </div>
         )}
 
+        {/* Critical actions */}
         {issue.type === "critical" && onEdit && (
           <button
             onClick={onEdit}
-            className="shrink-0 px-3 py-1.5 text-xs font-semibold bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white rounded-lg transition-all shadow-sm hover:shadow-md active:scale-95"
+            className="shrink-0 px-2 py-1 text-[10px] font-medium bg-red-100 hover:bg-red-200 text-red-800 transition-colors"
+            title="Go to cell and edit manually"
           >
             Edit
           </button>

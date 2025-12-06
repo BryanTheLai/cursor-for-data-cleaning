@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendWhatsAppMessage, buildFormLink, buildWhatsAppMessage } from '@/lib/twilio';
+import { sendWhatsAppMessage, buildFormLink, buildWhatsAppMessage, isTwilioConfigured } from '@/lib/twilio';
 import { createServerSupabaseClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import { v4 as uuidv4 } from 'uuid';
@@ -34,9 +34,9 @@ export async function POST(request: NextRequest) {
   try {
     const body: SendWhatsAppRequest = await request.json();
     
-    const isDemoMode = !isValidUUID(body.workspaceId) || 
-                       process.env.DEMO_MODE === 'true' || 
-                       !process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const isDemoMode = process.env.DEMO_MODE === 'true' || !isTwilioConfigured();
+    
+    const skipDatabase = !isValidUUID(body.workspaceId) || !process.env.SUPABASE_SERVICE_ROLE_KEY;
     
     const normalizedPhone = normalizePhone(body.phoneNumber);
     
@@ -76,18 +76,20 @@ export async function POST(request: NextRequest) {
       messageLength: message.length 
     });
 
+    // Always store in demoStore for local tracking (form submissions work without DB)
+    demoStore.createRequest({
+      id: requestId,
+      rowId: body.rowId,
+      recipientName: body.recipientName || 'Unknown',
+      phoneNumber: normalizedPhone || body.phoneNumber,
+      missingFields: body.missingFields,
+      existingData: body.existingData || {},
+      formUrl: formLink,
+    });
+
+    // Demo mode: don't send real WhatsApp, just return the form link
     if (isDemoMode) {
-      log.whatsapp.info('Demo mode - storing in demoStore', { requestId });
-      
-      demoStore.createRequest({
-        id: requestId,
-        rowId: body.rowId,
-        recipientName: body.recipientName || 'Unknown',
-        phoneNumber: normalizedPhone || body.phoneNumber,
-        missingFields: body.missingFields,
-        existingData: body.existingData || {},
-        formUrl: formLink,
-      });
+      log.whatsapp.info('Demo mode - WhatsApp simulated', { requestId, reason: 'DEMO_MODE=true or Twilio not configured' });
       
       return NextResponse.json({
         success: true,
@@ -99,60 +101,55 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Production mode: Send real WhatsApp message
     if (!normalizedPhone) {
       return NextResponse.json(
-        { error: 'Invalid phone number format for production mode' },
+        { error: 'Invalid phone number format' },
         { status: 400 }
       );
     }
 
-    const supabase = createServerSupabaseClient();
+    log.whatsapp.info('Sending real WhatsApp message', { 
+      to: normalizedPhone.slice(-4),
+      skipDatabase 
+    });
 
-    const { error: insertError } = await supabase
-      .from('whatsapp_requests')
-      .insert({
-        id: requestId,
-        workspace_id: body.workspaceId,
-        row_id: body.rowId,
-        phone_number: normalizedPhone,
-        missing_fields: body.missingFields,
-        status: 'sent',
-        form_url: formLink,
-      })
-      .select()
-      .single();
+    // Optionally store in database if configured
+    if (!skipDatabase) {
+      const supabase = createServerSupabaseClient();
 
-    if (insertError) {
-      log.supabase.error('Failed to insert WhatsApp request', { error: insertError.message });
-      return NextResponse.json(
-        { error: 'Failed to create WhatsApp request record' },
-        { status: 500 }
-      );
+      const { error: insertError } = await supabase
+        .from('whatsapp_requests')
+        .insert({
+          id: requestId,
+          workspace_id: body.workspaceId,
+          row_id: body.rowId,
+          phone_number: normalizedPhone,
+          missing_fields: body.missingFields,
+          status: 'sent',
+          form_url: formLink,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        log.supabase.warn('Failed to insert WhatsApp request (continuing anyway)', { error: insertError.message });
+      }
+
+      await supabase
+        .from('spreadsheet_rows')
+        .update({
+          whatsapp_status: 'sent',
+          whatsapp_thread_id: requestId,
+        })
+        .eq('id', body.rowId);
     }
 
-    log.supabase.info('WhatsApp request record created', { requestId });
-
-    const { error: updateError } = await supabase
-      .from('spreadsheet_rows')
-      .update({
-        whatsapp_status: 'sent',
-        whatsapp_thread_id: requestId,
-      })
-      .eq('id', body.rowId);
-
-    if (updateError) {
-      log.supabase.warn('Failed to update row WhatsApp status', { error: updateError.message });
-    }
-
+    // Send the actual WhatsApp message via Twilio
     const result = await sendWhatsAppMessage(normalizedPhone, message);
 
     if (!result.success) {
       log.whatsapp.error('Twilio send failed', { error: result.error });
-      
-      await supabase
-        .from('whatsapp_requests')
-        .update({ status: 'expired' })
-        .eq('id', requestId);
 
       return NextResponse.json(
         { error: result.error || 'Failed to send WhatsApp message' },

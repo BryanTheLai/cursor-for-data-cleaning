@@ -8,11 +8,23 @@ import {
   shift,
   autoUpdate,
 } from "@floating-ui/react";
-import { X, Check, AlertTriangle, ArrowRight } from "lucide-react";
+import { X, Check, AlertTriangle, ArrowRight, Clock, Loader2, CheckCircle, Copy, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CellStatus } from "@/types";
 import { cn, getFormatDescription } from "@/lib/utils";
 import { useGridStore } from "@/store/useGridStore";
+
+function formatRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 interface AISuggestionPopoverProps {
   anchorEl: HTMLElement | null;
@@ -36,19 +48,26 @@ export function AISuggestionPopover({
   const [isVisible, setIsVisible] = useState(false);
   const [showOverrideInput, setShowOverrideInput] = useState(false);
   const [overrideReason, setOverrideReason] = useState("");
-  const { sendWhatsAppRequest, rows, resolveDuplicate, overrideCritical, setActiveCell } = useGridStore();
+  const [isSending, setIsSending] = useState(false);
+  const [sendStatus, setSendStatus] = useState<"idle" | "success" | "error">("idle");
+  const { sendWhatsAppRequest, rows, whatsappRequests, resolveDuplicate, overrideCritical, setActiveCell } = useGridStore();
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const row = rows.find((r) => r.id === rowId);
-  const hasPhoneNumber = !!(row?.phoneNumber || row?.data?.phone);
+  const hasPhoneNumber = !!(row?.data?.phone || row?.phoneNumber);
+  
+  const existingRequest = whatsappRequests.find(
+    (r) => r.rowId === rowId && r.missingField === columnKey
+  );
+  const alreadySent = !!existingRequest;
 
   const { refs, floatingStyles, update } = useFloating({
     elements: {
       reference: anchorEl,
     },
-    placement: "right-start",
+    placement: "bottom-start",
     strategy: "fixed",
-    middleware: [offset(8), flip({ fallbackPlacements: ["left-start", "bottom-start", "top-start"] }), shift({ padding: 8 })],
+    middleware: [offset(4), flip({ fallbackPlacements: ["top-start", "right-start", "left-start"] }), shift({ padding: 8 })],
     whileElementsMounted: autoUpdate,
   });
 
@@ -67,8 +86,18 @@ export function AISuggestionPopover({
     return null;
   }
 
-  const handleWhatsAppRequest = () => {
-    sendWhatsAppRequest(rowId, columnKey);
+  const handleWhatsAppRequest = async () => {
+    setIsSending(true);
+    setSendStatus("idle");
+    try {
+      await sendWhatsAppRequest(rowId, columnKey);
+      setSendStatus("success");
+    } catch {
+      setSendStatus("error");
+      setTimeout(() => setSendStatus("idle"), 2000);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const getStateTitle = () => {
@@ -146,6 +175,58 @@ export function AISuggestionPopover({
           {status.message && (
             <p className="text-xs text-gray-600 bg-gray-50 px-2 py-1.5">{status.message}</p>
           )}
+
+          {status.state === "duplicate" && status.duplicateInfo && (
+            <div className="bg-orange-50 border border-orange-200 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-orange-700">
+                <Copy className="h-4 w-4" />
+                <span className="text-sm font-medium">Previous Transaction Found</span>
+              </div>
+              
+              <div className="space-y-1.5 text-xs">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Calendar className="h-3 w-3 text-orange-500" />
+                  <span>
+                    Paid on{" "}
+                    <span className="font-medium text-gray-800">
+                      {status.duplicateInfo.matchedAt.toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </span>
+                </div>
+                
+                <div className="bg-white border border-orange-100 p-2 space-y-1 font-mono text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Payee:</span>
+                    <span className="text-gray-800">{status.duplicateInfo.matchedData.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Amount:</span>
+                    <span className="text-gray-800">RM {status.duplicateInfo.matchedData.amount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Account:</span>
+                    <span className="text-gray-800">{status.duplicateInfo.matchedData.accountNumber}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 pt-1">
+                  <div className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    status.duplicateInfo.similarity === 1 ? "bg-red-500" : "bg-orange-400"
+                  )} />
+                  <span className="text-gray-500">
+                    {status.duplicateInfo.similarity === 1 
+                      ? "Exact match" 
+                      : `${Math.round(status.duplicateInfo.similarity * 100)}% similarity`}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-200 bg-gray-50">
@@ -185,17 +266,47 @@ export function AISuggestionPopover({
             <>
               {/* WhatsApp option for missing fields */}
               {status.source === "missing" && hasPhoneNumber && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleWhatsAppRequest}
-                  className="flex-1 text-green-600 border-green-300 hover:bg-green-50"
-                >
-                  <svg className="h-3 w-3 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                  </svg>
-                  Request via WhatsApp
-                </Button>
+                alreadySent || sendStatus === "success" ? (
+                  <div className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs bg-green-50 border border-green-200 text-green-700">
+                    <CheckCircle className="h-3 w-3" />
+                    <span>Sent {existingRequest ? formatRelativeTime(existingRequest.sentAt) : "just now"}</span>
+                    {existingRequest?.status === "pending" && (
+                      <span className="text-orange-500 font-medium">• Waiting</span>
+                    )}
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleWhatsAppRequest}
+                    disabled={isSending}
+                    className={cn(
+                      "flex-1 transition-all",
+                      sendStatus === "error" 
+                        ? "text-red-600 border-red-300 bg-red-50" 
+                        : "text-green-600 border-green-300 hover:bg-green-50"
+                    )}
+                  >
+                    {isSending ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                        Sending...
+                      </>
+                    ) : sendStatus === "error" ? (
+                      <>
+                        <X className="h-3 w-3 mr-1" />
+                        Failed - Retry
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-3 w-3 mr-1.5" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                        Request via WhatsApp
+                      </>
+                    )}
+                  </Button>
+                )
               )}
               
               {/* Override option for sanctioned entities or PDF mismatches */}

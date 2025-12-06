@@ -5,6 +5,15 @@ import { v4 as uuidv4 } from "uuid";
 import { autoFormat } from "@/lib/utils";
 import { PAYROLL_RULES, processRowWithRules, getRuleByKey } from "@/lib/rulesEngine";
 import type { ImportResult } from "@/components/ImportWizard";
+import { 
+  checkForDuplicate, 
+  addToHistory, 
+  generateFingerprint, 
+  seedDemoHistory,
+  clearHistory,
+  getHistoryStats,
+  type TransactionRecord 
+} from "@/lib/duplicateDetection";
 
 interface ActiveCell {
   rowId: string;
@@ -48,7 +57,15 @@ interface GridState {
   handleRealtimeUpdate: (rowId: string, data: Partial<RowData>) => void;
 }
 
-export const useGridStore = create<GridState>((set, get) => ({
+let historySeeded = false;
+
+export const useGridStore = create<GridState>((set, get) => {
+  if (!historySeeded) {
+    seedDemoHistory();
+    historySeeded = true;
+  }
+  
+  return {
   rows: MOCK_ROWS,
   columns: COLUMNS,
   activeCell: null,
@@ -146,6 +163,34 @@ export const useGridStore = create<GridState>((set, get) => ({
               source: error.message.includes("Missing") ? "missing" : "ai",
               suggestion: error.suggestion,
               confidence: error.confidence,
+            };
+          }
+        }
+
+        const name = data.name || '';
+        const amount = ruleResult.cleaned.amount || data.amount || '';
+        const accountNumber = ruleResult.cleaned.accountNumber || data.accountNumber || '';
+        
+        if (name && amount) {
+          const duplicateMatch = checkForDuplicate(name, amount, accountNumber, rowId);
+          
+          if (duplicateMatch) {
+            const dateStr = duplicateMatch.matchedAt.toLocaleDateString('en-GB', { 
+              day: 'numeric', 
+              month: 'short',
+              year: 'numeric'
+            });
+            
+            status.amount = {
+              state: "duplicate",
+              message: `Potential duplicate: Same payee+amount paid on ${dateStr}`,
+              source: "duplicate",
+              duplicateInfo: {
+                matchedRowId: duplicateMatch.matchedRowId,
+                matchedAt: duplicateMatch.matchedAt,
+                matchedData: duplicateMatch.matchedData,
+                similarity: duplicateMatch.similarity,
+              },
             };
           }
         }
@@ -396,7 +441,7 @@ export const useGridStore = create<GridState>((set, get) => ({
     const { rows, whatsappRequests, workspaceId } = get();
     const row = rows.find((r) => r.id === rowId);
     
-    const phoneNumber = row?.phoneNumber || row?.data.phone;
+    const phoneNumber = row?.data.phone || row?.phoneNumber;
     if (!row || !phoneNumber) {
       console.warn("[STORE] Cannot send WhatsApp - no phone number", { 
         hasRow: !!row, 
@@ -793,4 +838,4 @@ export const useGridStore = create<GridState>((set, get) => ({
 
     set({ rows: newRows });
   },
-}));
+}});

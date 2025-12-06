@@ -59,6 +59,7 @@ export const log = {
   validation: createLogger('VALIDATION'),
   api: createLogger('API'),
   store: createLogger('STORE'),
+  duplicate: createLogger('DUPLICATE'),
 };
 
 export const measureTime = async <T>(

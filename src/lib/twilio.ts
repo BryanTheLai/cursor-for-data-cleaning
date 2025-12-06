@@ -7,11 +7,24 @@ const whatsappNumber = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14155238
 
 let twilioClient: twilio.Twilio | null = null;
 
+export function isTwilioConfigured(): boolean {
+  return !!(accountSid && authToken && accountSid.startsWith('AC'));
+}
+
 function getTwilioClient(): twilio.Twilio {
   if (!twilioClient) {
     if (!accountSid || !authToken) {
-      throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set');
+      throw new Error(
+        'Twilio not configured. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in .env.local'
+      );
     }
+    
+    if (!accountSid.startsWith('AC')) {
+      throw new Error(
+        'Invalid TWILIO_ACCOUNT_SID format. Should start with "AC"'
+      );
+    }
+    
     twilioClient = twilio(accountSid, authToken);
     log.whatsapp.info('Twilio client initialized');
   }
@@ -102,11 +115,27 @@ export async function sendWhatsAppMessage(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    log.whatsapp.error('WhatsApp send failed', { error: errorMessage });
+    const errorCode = (error as { code?: number })?.code;
+    
+    log.whatsapp.error('WhatsApp send failed', { 
+      error: errorMessage,
+      code: errorCode,
+      to: formattedTo,
+    });
+
+    // Provide helpful error messages
+    let userMessage = errorMessage;
+    if (errorMessage.includes('not a valid phone number')) {
+      userMessage = 'Invalid phone number format. Must be E.164 format (e.g. +60123456789)';
+    } else if (errorMessage.includes('not registered') || errorMessage.includes('sandbox')) {
+      userMessage = 'Recipient must first join Twilio sandbox. Send "join do-wooden" to +1 415 523 8886 on WhatsApp.';
+    } else if (errorMessage.includes('authenticate')) {
+      userMessage = 'Twilio authentication failed. Check your TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN.';
+    }
     
     return {
       success: false,
-      error: errorMessage,
+      error: userMessage,
     };
   }
 }

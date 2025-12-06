@@ -49,6 +49,59 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to see the application.
 
+## Environment Variables
+
+Create a `.env.local` file in the root directory:
+
+```bash
+# App Configuration
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+DEMO_MODE=true  # Set to 'false' for production with real Twilio
+
+# Supabase (Database + Realtime)
+# Get from: https://supabase.com/dashboard/project/_/settings/api
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Twilio (WhatsApp) - Required for production
+# Get from: https://console.twilio.com/
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your-auth-token
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886  # Sandbox number
+
+# Groq (AI)
+# Get from: https://console.groq.com/keys
+GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+### Twilio WhatsApp Setup
+
+**Sandbox (Development):**
+1. Sign up at [Twilio Console](https://console.twilio.com/)
+2. Go to **Messaging > Try it out > Send a WhatsApp message**
+3. Follow the sandbox setup - send "join <sandbox-code>" from your phone
+4. Get your Account SID and Auth Token from the dashboard
+5. The sandbox number is `whatsapp:+14155238886`
+
+**Production:**
+1. Apply for WhatsApp Business API via Twilio
+2. Get a dedicated WhatsApp number
+3. Update `TWILIO_WHATSAPP_NUMBER` in `.env.local`
+
+**Webhook Configuration:**
+1. In Twilio Console, go to **Messaging > Settings > WhatsApp Sandbox**
+2. Set "When a message comes in" webhook URL to:
+   ```
+   https://your-domain.com/api/whatsapp/webhook
+   ```
+3. Method: `POST`
+
+**Demo Mode:**
+- Set `DEMO_MODE=true` to test without real Twilio
+- WhatsApp requests are stored in memory
+- Use the form link to simulate user responses
+
 ## Project Structure
 
 ```

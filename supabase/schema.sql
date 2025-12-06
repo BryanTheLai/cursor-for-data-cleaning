@@ -112,3 +112,5 @@ insert into target_columns (workspace_id, key, label, type, rules, required, sor
   ('YOUR_WORKSPACE_ID', 'phone', 'Phone Number', 'phone', 'Malaysian format: +60XXXXXXXXX. Remove spaces and dashes.', false, 6);
 */
 
+
+

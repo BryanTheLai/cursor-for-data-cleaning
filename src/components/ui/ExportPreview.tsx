@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Download, ArrowRight, Check, AlertTriangle, MessageCircle } from "lucide-react";
+import { X, Download, ArrowRight, Check, AlertTriangle, MessageCircle, FileJson, FileSpreadsheet, ChevronDown } from "lucide-react";
 import { useGridStore } from "@/store/useGridStore";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,8 +20,19 @@ interface Change {
   source: "ai" | "whatsapp" | "manual" | "duplicate";
 }
 
+type ExportFormat = "csv" | "json" | "maybank" | "cimb";
+
+const EXPORT_FORMATS: { value: ExportFormat; label: string; description: string }[] = [
+  { value: "csv", label: "Standard CSV", description: "Universal format" },
+  { value: "json", label: "JSON", description: "API-ready format" },
+  { value: "maybank", label: "Maybank Bulk", description: "MBB payment format" },
+  { value: "cimb", label: "CIMB BizChannel", description: "CIMB bulk format" },
+];
+
 export function ExportPreview({ isOpen, onClose }: ExportPreviewProps) {
   const { rows, columns, fileName, history } = useGridStore();
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("csv");
+  const [showFormatDropdown, setShowFormatDropdown] = useState(false);
 
   const changes = useMemo(() => {
     const result: Change[] = [];
@@ -71,8 +82,8 @@ export function ExportPreview({ isOpen, onClose }: ExportPreviewProps) {
     return count;
   }, [rows]);
 
-  const handleDownload = useCallback(() => {
-    const csvContent = [
+  const generateCSV = useCallback(() => {
+    return [
       columns.map((col) => col.header).join(","),
       ...rows.map((row) =>
         columns
@@ -85,19 +96,93 @@ export function ExportPreview({ isOpen, onClose }: ExportPreviewProps) {
           .join(",")
       ),
     ].join("\n");
+  }, [rows, columns]);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const generateJSON = useCallback(() => {
+    const data = rows.map((row) => {
+      const obj: Record<string, string> = {};
+      columns.forEach((col) => {
+        obj[col.key] = row.data[col.key] || "";
+      });
+      return obj;
+    });
+    return JSON.stringify({ rows: data, exportedAt: new Date().toISOString(), totalRows: rows.length }, null, 2);
+  }, [rows, columns]);
+
+  const generateMaybankFormat = useCallback(() => {
+    const header = "RecordType|PaymentDate|ValueDate|CurrencyCode|Amount|PaymentRef|BeneficiaryName|BeneficiaryAccountNo|BeneficiaryBankCode";
+    const dataRows = rows.map((row) => {
+      const date = new Date().toISOString().split("T")[0].replace(/-/g, "");
+      return [
+        "D",
+        date,
+        date,
+        "MYR",
+        row.data.amount || "0.00",
+        row.data.id || `REF${Date.now()}`,
+        row.data.name || "",
+        row.data.accountNumber || "",
+        row.data.bank || "MBB",
+      ].join("|");
+    });
+    return [header, ...dataRows].join("\n");
+  }, [rows]);
+
+  const generateCIMBFormat = useCallback(() => {
+    const header = "SEQ,BENEFICIARY_NAME,BENEFICIARY_ACCOUNT,BANK_CODE,AMOUNT,PAYMENT_REF,PARTICULARS";
+    const dataRows = rows.map((row, idx) => {
+      return [
+        idx + 1,
+        `"${row.data.name || ""}"`,
+        row.data.accountNumber || "",
+        row.data.bank || "CIMB",
+        row.data.amount || "0.00",
+        row.data.id || `PAY${idx + 1}`,
+        "Salary Payment",
+      ].join(",");
+    });
+    return [header, ...dataRows].join("\n");
+  }, [rows]);
+
+  const handleDownload = useCallback(() => {
+    let content: string;
+    let mimeType: string;
+    let extension: string;
+
+    switch (exportFormat) {
+      case "json":
+        content = generateJSON();
+        mimeType = "application/json;charset=utf-8;";
+        extension = "json";
+        break;
+      case "maybank":
+        content = generateMaybankFormat();
+        mimeType = "text/plain;charset=utf-8;";
+        extension = "txt";
+        break;
+      case "cimb":
+        content = generateCIMBFormat();
+        mimeType = "text/csv;charset=utf-8;";
+        extension = "csv";
+        break;
+      default:
+        content = generateCSV();
+        mimeType = "text/csv;charset=utf-8;";
+        extension = "csv";
+    }
+
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    const cleanFileName = fileName.replace(/\.[^/.]+$/, "") + "_cleaned.csv";
+    const cleanFileName = fileName.replace(/\.[^/.]+$/, "") + `_cleaned.${extension}`;
     link.download = cleanFileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     onClose();
-  }, [rows, columns, fileName, onClose]);
+  }, [fileName, onClose, exportFormat, generateCSV, generateJSON, generateMaybankFormat, generateCIMBFormat]);
 
   if (!isOpen) return null;
 
@@ -283,14 +368,58 @@ export function ExportPreview({ isOpen, onClose }: ExportPreviewProps) {
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleDownload}>
-            <Download className="h-4 w-4 mr-2" />
-            Download CSV
-          </Button>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <div className="relative">
+            <button
+              onClick={() => setShowFormatDropdown(!showFormatDropdown)}
+              className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              {exportFormat === "json" ? (
+                <FileJson className="h-4 w-4 text-blue-600" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+              )}
+              <span>{EXPORT_FORMATS.find(f => f.value === exportFormat)?.label}</span>
+              <ChevronDown className="h-4 w-4 text-gray-400" />
+            </button>
+            {showFormatDropdown && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowFormatDropdown(false)} />
+                <div className="absolute bottom-full left-0 mb-2 w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50">
+                  {EXPORT_FORMATS.map((format) => (
+                    <button
+                      key={format.value}
+                      onClick={() => {
+                        setExportFormat(format.value);
+                        setShowFormatDropdown(false);
+                      }}
+                      className={cn(
+                        "w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center justify-between first:rounded-t-lg last:rounded-b-lg",
+                        exportFormat === format.value && "bg-emerald-50"
+                      )}
+                    >
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{format.label}</div>
+                        <div className="text-xs text-gray-500">{format.description}</div>
+                      </div>
+                      {exportFormat === format.value && (
+                        <Check className="h-4 w-4 text-emerald-600" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              Download {EXPORT_FORMATS.find(f => f.value === exportFormat)?.label}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ArrowRight, Play, Zap, Clock, DollarSign, AlertTriangle } from "lucide-react";
+import { ROICalculator } from "@/components/ui/ROICalculator";
 
 const PYTHON_ERRORS = [
   'Traceback (most recent call last):',
@@ -687,6 +688,16 @@ export default function LandingPage() {
               </div>
             </>
           )}
+        </div>
+      </section>
+
+      <section className="py-20 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Calculate Your Savings</h2>
+            <p className="text-gray-400">See exactly how much time and money RytFlow can save your team</p>
+          </div>
+          <ROICalculator />
         </div>
       </section>
 
