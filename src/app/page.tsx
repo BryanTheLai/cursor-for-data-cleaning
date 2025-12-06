@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowRight, Play, Zap, Clock, DollarSign, AlertTriangle, TrendingDown } from "lucide-react";
+import { ArrowRight, Play, Zap, Clock, DollarSign, AlertTriangle } from "lucide-react";
 import { ROICalculator } from "@/components/ui/ROICalculator";
 
 const PYTHON_ERRORS = [
@@ -503,230 +503,244 @@ function RytFlowPreview() {
 }
 
 export default function LandingPage() {
-  const [pinned, setPinned] = useState<"pain" | "solution">("pain");
-
-  const heroStats = [
-    { icon: Clock, label: "Errors fixed", value: "47 → 30s" },
-    { icon: DollarSign, label: "Hours saved", value: "70–90%" },
-    { icon: AlertTriangle, label: "Duplicate payments", value: "Zero" },
-  ];
-
-  const solutionWins = [
-    { title: "Tab to accept", body: "Autofix 47 spreadsheet errors in under a minute." },
-    { title: "WhatsApp outreach", body: "Ping vendors for missing fields, responses land in the sheet." },
-    { title: "Duplicate defense", body: "Catch reruns before money moves." },
-  ];
+  const [showAfter, setShowAfter] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-[#0a0a0a] text-white overflow-x-hidden">
       <style jsx global>{`
         @keyframes dialog-pop {
-          0% { transform: scale(0.9); opacity: 0; }
-          60% { transform: scale(1.02); }
+          0% { transform: scale(0.8); opacity: 0; }
+          50% { transform: scale(1.02); }
           100% { transform: scale(1); opacity: 1; }
         }
-        .animate-dialog-pop { animation: dialog-pop 0.35s ease-out forwards; }
+        .animate-dialog-pop {
+          animation: dialog-pop 0.3s ease-out forwards;
+        }
+        @keyframes blink {
+          0%, 50% { opacity: 1; }
+          51%, 100% { opacity: 0; }
+        }
+        .animate-blink {
+          animation: blink 1s infinite;
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: #4b5563;
+          border-radius: 3px;
+        }
       `}</style>
 
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#050505]/80 backdrop-blur-sm border-b border-emerald-900/40">
-        <div className="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-black" />
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-sm border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-lg flex items-center justify-center">
+              <Zap className="w-5 h-5 text-white" />
             </div>
-            <span className="font-semibold text-lg tracking-tight">RytFlow</span>
+            <span className="font-bold text-xl tracking-tight">RytFlow</span>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setPinned("pain")}
-              className={`px-3 py-1.5 rounded-md text-sm transition ${
-                pinned === "pain" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"
-              }`}
-            >
-              Pain
-            </button>
-            <button
-              onClick={() => setPinned("solution")}
-              className={`px-3 py-1.5 rounded-md text-sm transition ${
-                pinned === "solution" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"
-              }`}
-            >
-              Solution
-            </button>
-            <Link
-              href="/demo"
-              className="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-5 py-2 rounded-lg transition-all hover:scale-105 flex items-center gap-2"
-            >
-              Try Demo <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+          <Link 
+            href="/demo"
+            className="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-5 py-2 rounded-lg transition-all hover:scale-105 flex items-center gap-2"
+          >
+            Try Demo <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
       </nav>
 
-      <main className="pt-28 pb-16 px-5">
-        <section className="max-w-6xl mx-auto grid lg:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-1.5">
-              <span className="text-emerald-300 text-sm font-medium">For Payment Operations Teams</span>
-            </div>
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight tracking-tight">
-              Stop Cleaning Excel Files
-              <br />
-              <span className="text-emerald-400">For 32 Hours Every Week</span>
-            </h1>
-            <p className="text-lg text-gray-300 max-w-2xl">
-              Sarah, Payment Ops Manager at a mid-sized bank. 47 Excel files every Monday. 2000 rows. Different formats.
-              Reduce downstream payment risk before money moves.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/demo"
-                className="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-6 py-3 rounded-lg text-lg transition-all hover:scale-105 flex items-center gap-2 shadow-lg shadow-emerald-500/25"
-              >
-                <Play className="w-5 h-5" /> See the Magic
-              </Link>
-              <button
-                onClick={() => setPinned(pinned === "pain" ? "solution" : "pain")}
-                className="bg-white/10 hover:bg-white/15 text-white font-medium px-6 py-3 rounded-lg text-lg transition-all border border-white/10"
-              >
-                {pinned === "pain" ? "Show Solution" : "Show Pain"}
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-4 text-sm">
-              {heroStats.map(({ icon: Icon, label, value }) => (
-                <div key={label} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-md px-3 py-2">
-                  <Icon className="w-4 h-4 text-emerald-400" />
-                  <div className="flex flex-col">
-                    <span className="text-gray-400">{label}</span>
-                    <span className="text-white font-semibold">{value}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+      <section className="pt-24 pb-16 px-6 bg-gradient-to-b from-emerald-950/25 to-transparent">
+        <div className="max-w-6xl mx-auto">
+          <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-1.5 mb-8">
+            <span className="text-emerald-300 text-sm font-medium">For Payment Operations Teams</span>
           </div>
 
-          <div className="relative">
-            <div className="absolute -inset-6 bg-emerald-500/10 blur-3xl rounded-3xl" />
-            <div className="relative bg-[#0c1110] border border-emerald-900/40 rounded-2xl overflow-hidden shadow-xl shadow-emerald-500/10">
-              {pinned === "pain" ? (
-                <div className="grid gap-6 p-6">
-                  <div className="rounded-xl border border-red-500/40 bg-red-500/5">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div className="space-y-6">
+              <h1 className="text-5xl md:text-6xl font-bold leading-tight tracking-tight">
+                Stop Cleaning Excel Files
+                <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-300">
+                  For 32 Hours Every Week
+                </span>
+              </h1>
+
+              <p className="text-lg text-gray-400">
+                Sarah in Payment Ops fights 47 Excel files every Monday, patches brittle Python scripts, and chases 847 missing phone numbers over email before payroll can run.
+              </p>
+
+              <div className="flex flex-wrap gap-4">
+                <Link
+                  href="/demo"
+                  className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-8 py-4 rounded-lg text-lg transition-all hover:scale-105 flex items-center gap-2 shadow-lg shadow-emerald-500/25"
+                >
+                  <Play className="w-5 h-5" /> See the Magic
+                </Link>
+                <button
+                  onClick={() => setShowAfter(!showAfter)}
+                  className="bg-white/5 hover:bg-white/15 text-white font-semibold px-8 py-4 rounded-lg text-lg transition-all border border-white/15"
+                >
+                  {showAfter ? "Show Pain" : "Show Solution"}
+                </button>
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-4 text-sm">
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-emerald-300" />
+                  <div>
+                    <div className="text-white font-semibold">47 errors → 30s</div>
+                    <div className="text-gray-400">Python-free cleanup</div>
+                  </div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-3">
+                  <DollarSign className="w-5 h-5 text-emerald-300" />
+                  <div>
+                    <div className="text-white font-semibold">70–90% faster</div>
+                    <div className="text-gray-400">No manual Excel triage</div>
+                  </div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-emerald-300" />
+                  <div>
+                    <div className="text-white font-semibold">Zero duplicates</div>
+                    <div className="text-gray-400">WhatsApp verification</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-2xl">
+              <RytFlowPreview />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="pb-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          {!showAfter ? (
+            <>
+              <div className="text-center mb-12">
+                <h2 className="text-3xl font-bold mb-2 text-red-400">The Current Reality</h2>
+                <p className="text-gray-500">Python scripts crack. Excel screams. Email responses take a week.</p>
+              </div>
+
+              <div className="grid lg:grid-cols-2 gap-8 mb-12">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                      <span className="text-red-400 font-mono text-sm">$</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white">Python Script Hell</h3>
+                      <p className="text-xs text-gray-500">2000+ lines of code that breaks constantly</p>
+                    </div>
+                  </div>
+                  <div className="rounded-xl overflow-hidden border border-red-500/30 shadow-lg shadow-red-500/10">
                     <TerminalScroll />
                   </div>
-                  <div className="rounded-xl border border-red-500/30 bg-red-500/5">
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                      <span className="text-red-400 text-lg">⚠</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white">Excel Error Nightmare</h3>
+                      <p className="text-xs text-gray-500">Click OK. Click OK. Click OK. Forever.</p>
+                    </div>
+                  </div>
+                  <div className="rounded-xl overflow-hidden border border-red-500/30 shadow-lg shadow-red-500/10">
                     <ExcelChaos />
                   </div>
-                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/5">
-                    <EmailChase />
+                </div>
+              </div>
+
+              <div className="max-w-2xl mx-auto">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                    <span className="text-yellow-400">📧</span>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-white/5 px-5 py-4 text-center">
-                    <div className="text-3xl font-semibold text-red-300">3 Weeks</div>
-                    <div className="text-gray-400 text-sm">Average time to process one batch of payments</div>
+                  <div>
+                    <h3 className="font-semibold text-white">The Email Chase</h3>
+                    <p className="text-xs text-gray-500">Waiting 3-5 business days for simple data</p>
                   </div>
                 </div>
-              ) : (
-                <div className="grid gap-6 p-6 animate-dialog-pop">
-                  <RytFlowPreview />
-                  <div className="grid sm:grid-cols-3 gap-4">
-                    {solutionWins.map((item) => (
-                      <div key={item.title} className="bg-white/5 border border-emerald-500/20 rounded-lg p-4">
-                        <div className="text-lg font-semibold text-emerald-300">{item.title}</div>
-                        <div className="text-sm text-gray-300 mt-1">{item.body}</div>
-                      </div>
-                    ))}
+                <EmailChase />
+              </div>
+
+              <div className="text-center mt-16">
+                <div className="inline-block bg-red-500/10 border border-red-500/30 rounded-lg px-8 py-6">
+                  <div className="text-4xl font-bold text-red-400 mb-2">3 Weeks</div>
+                  <div className="text-gray-400">Average time to process one batch of payments</div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-center mb-12">
+                <h2 className="text-3xl font-bold mb-2 text-emerald-400">With RytFlow</h2>
+                <p className="text-gray-500">Tab to accept. WhatsApp for missing data. Done.</p>
+              </div>
+
+              <div className="max-w-2xl mx-auto">
+                <RytFlowPreview />
+                
+                <div className="mt-8 grid grid-cols-3 gap-4 text-center">
+                  <div className="bg-white/5 rounded-lg p-4">
+                    <div className="text-3xl font-bold text-emerald-400">30s</div>
+                    <div className="text-xs text-gray-500">Fix 47 errors</div>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-4">
+                    <div className="text-3xl font-bold text-emerald-400">15min</div>
+                    <div className="text-xs text-gray-500">Missing data via WhatsApp</div>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-4">
+                    <div className="text-3xl font-bold text-emerald-400">100%</div>
+                    <div className="text-xs text-gray-500">Duplicates caught</div>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-        </section>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
 
-        <section className="max-w-5xl mx-auto mt-16 grid md:grid-cols-2 gap-10">
-          <div className="bg-[#0c0f0e] border border-emerald-900/40 rounded-2xl p-8 space-y-5">
-            <div className="text-sm uppercase tracking-[0.2em] text-gray-500">Problem</div>
-            <h2 className="text-2xl font-semibold text-red-200">Python scripts, Excel popups, email chases</h2>
-            <p className="text-gray-300">
-              Dirty, painful, brittle. 2000+ lines of Python to patch together inconsistent CSVs. Macro popups blocking every five seconds.
-              Endless email threads to chase banking details. Ops teams lose 32 hours a week on cleanup, and downstream payment risk rises.
-            </p>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-                <div className="text-2xl font-semibold text-red-200">47</div>
-                <div className="text-gray-400">Errors per cycle</div>
-              </div>
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-                <div className="text-2xl font-semibold text-amber-200">3–5 days</div>
-                <div className="text-gray-400">Waiting for missing data</div>
-              </div>
-            </div>
+      <section className="py-20 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Calculate Your Savings</h2>
+            <p className="text-gray-400">See exactly how much time and money RytFlow can save your team</p>
           </div>
-          <div className="bg-gradient-to-br from-emerald-600 to-emerald-500 rounded-2xl p-8 space-y-5 text-[#02100a] shadow-emerald-500/30 shadow-xl">
-            <div className="text-sm uppercase tracking-[0.2em] text-[#013121]">Solution</div>
-            <h2 className="text-2xl font-semibold">RytFlow clears the mess in minutes</h2>
-            <p className="text-[#01271d]">
-              Import the dirty file, tap through suggested fixes, and push WhatsApp for missing fields. Everything lands back in the grid, duplicates blocked.
-            </p>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="bg-white/60 rounded-lg p-4">
-                <div className="text-lg font-semibold">30 seconds</div>
-                <div className="text-[#013121]">Fix 47 errors</div>
-              </div>
-              <div className="bg-white/60 rounded-lg p-4">
-                <div className="text-lg font-semibold">15 minutes</div>
-                <div className="text-[#013121]">WhatsApp responses captured</div>
-              </div>
-            </div>
-            <Link
-              href="/demo"
-              className="inline-flex items-center gap-2 bg-black text-white px-5 py-3 rounded-lg text-sm font-semibold hover:scale-105 transition"
-            >
-              See it live <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </section>
+          <ROICalculator />
+        </div>
+      </section>
 
-        <section className="max-w-5xl mx-auto mt-16">
-          <div className="bg-[#0c0f0e] border border-emerald-900/40 rounded-2xl p-8">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <div className="text-sm text-gray-400">For Payment Ops leaders</div>
-                <h3 className="text-2xl font-semibold">Calculate your savings</h3>
-              </div>
-              <div className="hidden sm:flex items-center gap-2 text-sm text-emerald-300">
-                <TrendingDown className="w-4 h-4" />
-                <span>Time, tickets, duplicates</span>
-              </div>
-            </div>
-            <ROICalculator />
-          </div>
-        </section>
+      <section className="py-20 px-6 bg-gradient-to-b from-transparent to-emerald-950/30">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-4">Ready to Save 32 Hours Every Week?</h2>
+          <p className="text-gray-400 mb-8">
+            Upload your messy CSV. Watch it get fixed in seconds.
+          </p>
+          <Link
+            href="/demo"
+            className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-10 py-5 rounded-lg text-xl transition-all hover:scale-105 shadow-lg shadow-emerald-500/25"
+          >
+            Try RytFlow Now <ArrowRight className="w-6 h-6" />
+          </Link>
+        </div>
+      </section>
 
-        <section className="max-w-5xl mx-auto mt-16">
-          <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-2xl px-8 py-10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-emerald-500/30 shadow-xl">
-            <div>
-              <div className="text-sm uppercase tracking-[0.25em] text-[#013121]">Next step</div>
-              <h3 className="text-3xl font-bold text-black mt-2">Ready to save 32 hours every week?</h3>
-              <p className="text-[#01271d] mt-2">Upload your messy CSV. Watch it get fixed in seconds.</p>
-            </div>
-            <Link
-              href="/demo"
-              className="inline-flex items-center gap-2 bg-black text-white px-6 py-4 rounded-lg text-lg font-semibold hover:scale-105 transition"
-            >
-              Try RytFlow Now <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
-        </section>
-      </main>
-
-      <footer className="py-8 px-6 border-t border-white/10 mt-12">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-500">
+      <footer className="py-8 px-6 border-t border-white/10">
+        <div className="max-w-7xl mx-auto flex items-center justify-between text-sm text-gray-500">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-emerald-500 rounded flex items-center justify-center">
-              <Zap className="w-4 h-4 text-black" />
+            <div className="w-6 h-6 bg-gradient-to-br from-emerald-400 to-teal-500 rounded flex items-center justify-center">
+              <Zap className="w-4 h-4 text-white" />
             </div>
             <span>RytFlow</span>
           </div>
-          <div className="text-gray-400">Tab to fix. WhatsApp to verify. Sleep soundly.</div>
+          <div>Tab to fix. WhatsApp to verify. Sleep soundly.</div>
         </div>
       </footer>
     </div>

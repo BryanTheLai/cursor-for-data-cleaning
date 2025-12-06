@@ -4,6 +4,44 @@ import { log } from '@/lib/logger';
 import { demoStore } from '@/lib/demoStore';
 import { PAYROLL_RULES, getTargetSchemaFromRules } from '@/lib/rulesEngine';
 
+async function loadTargetColumns(workspaceId?: string) {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data, error } = await supabase
+      .from('target_columns')
+      .select('key,label,type,required,rules,sort_order')
+      .eq('workspace_id', workspaceId)
+      .order('sort_order');
+
+    if (error || !data || data.length === 0) {
+      return getTargetSchemaFromRules(PAYROLL_RULES).map((col) => ({
+        key: col.key,
+        label: col.label,
+        type: col.type,
+        required: col.required,
+      }));
+    }
+
+    return data.map((col) => ({
+      key: col.key,
+      label: col.label,
+      type: col.type,
+      required: col.required,
+    }));
+  } catch (err) {
+    log.api.warn('Falling back to default target columns', {
+      workspaceId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return getTargetSchemaFromRules(PAYROLL_RULES).map((col) => ({
+      key: col.key,
+      label: col.label,
+      type: col.type,
+      required: col.required,
+    }));
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ uuid: string }> }
@@ -26,7 +64,7 @@ export async function GET(
       demoStore.updateStatus(uuid, 'clicked');
     }
 
-    const targetColumns = getTargetSchemaFromRules(PAYROLL_RULES);
+    const targetColumns = await loadTargetColumns(undefined);
 
     return NextResponse.json({
       requestId: uuid,
@@ -86,16 +124,12 @@ export async function GET(
     const row = whatsappRequest.spreadsheet_rows;
     const workspace = whatsappRequest.workspaces;
 
-    const { data: targetColumns } = await supabase
-      .from('target_columns')
-      .select('*')
-      .eq('workspace_id', workspace.id)
-      .order('sort_order');
+    const targetColumns = await loadTargetColumns(workspace.id);
 
     log.api.info('Form data retrieved', {
       uuid,
       missingFields: whatsappRequest.missing_fields,
-      columnCount: targetColumns?.length || 0,
+      columnCount: targetColumns.length,
     });
 
     return NextResponse.json({
@@ -104,7 +138,7 @@ export async function GET(
       workspaceName: workspace.name,
       existingData: row.clean_data || row.raw_data,
       missingFields: whatsappRequest.missing_fields,
-      targetColumns: targetColumns || [],
+      targetColumns,
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

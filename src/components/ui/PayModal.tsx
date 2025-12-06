@@ -46,7 +46,7 @@ export function PayModal({ isOpen, onClose }: PayModalProps) {
 
   useEffect(() => {
     if (isOpen) {
-      setSelected(new Set(candidates.map((c) => c.id)));
+      setSelected(new Set());
       setSendStatus({});
       setIsSending(false);
     }
@@ -123,9 +123,9 @@ export function PayModal({ isOpen, onClose }: PayModalProps) {
           </button>
         </div>
 
-        <div className="px-6 py-3 bg-amber-50 border-b border-amber-100 text-sm text-amber-800 flex items-center gap-2">
+        <div className="px-6 py-3 bg-red-50 border-b border-red-100 text-sm text-red-800 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4" />
-          Pick your own number before sending. This demo sends a WhatsApp preview with the payment details for each selected row.
+          Pick your own phone number before sending. This demo will WhatsApp the details to your chosen number. Send your number to +14155238886 with code do-wooden before proceeding.
         </div>
 
         <div className="px-6 py-3 flex items-center gap-3 border-b border-gray-100 bg-gray-50">

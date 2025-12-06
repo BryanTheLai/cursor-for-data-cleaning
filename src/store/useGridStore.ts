@@ -3,7 +3,8 @@ import type { RowData, CellStatus, WhatsAppRequest, HistoryEntry, ColumnDef } fr
 import { MOCK_ROWS, COLUMNS } from "@/data/mockData";
 import { v4 as uuidv4 } from "uuid";
 import { autoFormat } from "@/lib/utils";
-import { PAYROLL_RULES, processRowWithRules, getRuleByKey } from "@/lib/rulesEngine";
+import { PAYROLL_RULES, DEFAULT_RULE_CONFIG, processRowWithRules, getRuleByKey, buildRuleSetFromConfig } from "@/lib/rulesEngine";
+import { useRuleStore } from "@/store/useRuleStore";
 import type { ImportResult } from "@/components/ImportWizard";
 import { 
   checkForDuplicate, 
@@ -138,6 +139,11 @@ export const useGridStore = create<GridState>((set, get) => {
     set({ isImporting: true });
 
     try {
+      const ruleConfigs = useRuleStore.getState().rules;
+      const activeRuleSet = buildRuleSetFromConfig(
+        ruleConfigs && ruleConfigs.length > 0 ? ruleConfigs : DEFAULT_RULE_CONFIG,
+        PAYROLL_RULES
+      );
       const newColumns: ColumnDef[] = result.targetSchema.map((col) => ({
         key: col.key,
         header: col.label,
@@ -170,7 +176,7 @@ export const useGridStore = create<GridState>((set, get) => {
           data.phone = DEFAULT_PHONE_FALLBACK;
         }
 
-        const ruleResult = processRowWithRules(data, PAYROLL_RULES);
+        const ruleResult = processRowWithRules(data, activeRuleSet);
 
         for (const change of ruleResult.changes) {
           status[change.column] = {
@@ -239,7 +245,7 @@ export const useGridStore = create<GridState>((set, get) => {
         }
 
         if (phoneNumber) {
-          const phoneRule = getRuleByKey(PAYROLL_RULES, "phone");
+          const phoneRule = getRuleByKey(activeRuleSet, "phone");
           if (phoneRule?.transform) {
             const { value: normalizedPhone } = phoneRule.transform(phoneNumber);
             phoneNumber = normalizedPhone;
