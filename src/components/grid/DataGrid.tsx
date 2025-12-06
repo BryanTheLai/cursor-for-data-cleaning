@@ -1,0 +1,331 @@
+"use client";
+
+import { useRef, useEffect, useCallback, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useGridStore } from "@/store/useGridStore";
+import { GridCell } from "./GridCell";
+import { AISuggestionPopover } from "./AISuggestionPopover";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
+
+export function DataGrid() {
+  const {
+    rows,
+    columns,
+    activeCell,
+    setActiveCell,
+    applySuggestion,
+    rejectSuggestion,
+    applyColumnFix,
+    jumpToNextError,
+    undoLastChange,
+    updateCellValue,
+    history,
+    getFilteredRows,
+  } = useGridStore();
+
+  const filteredRows = getFilteredRows();
+
+  const gridRef = useRef<HTMLDivElement>(null);
+  const activeCellRef = useRef<HTMLTableCellElement | null>(null);
+  const { addToast } = useToast();
+  const [recentlyFixed, setRecentlyFixed] = useState<Set<string>>(new Set());
+  const [editingCell, setEditingCell] = useState<{ rowId: string; columnKey: string } | null>(null);
+
+  // Get active cell status for popover
+  const getActiveCellStatus = useCallback(() => {
+    if (!activeCell) return null;
+    const row = rows.find((r) => r.id === activeCell.rowId);
+    if (!row) return null;
+    return row.status[activeCell.columnKey] || null;
+  }, [activeCell, rows]);
+
+  const activeCellStatus = getActiveCellStatus();
+  const showPopover =
+    activeCell &&
+    activeCellStatus &&
+    ["ai-suggestion", "duplicate", "critical"].includes(activeCellStatus.state);
+
+  // Tab to accept suggestion and jump to next error
+  useHotkeys(
+    "tab",
+    (e) => {
+      e.preventDefault();
+      if (activeCell && activeCellStatus?.state === "ai-suggestion") {
+        applySuggestion(activeCell.rowId, activeCell.columnKey);
+      }
+      jumpToNextError();
+    },
+    { enableOnFormTags: false }
+  );
+
+  // Escape to reject suggestion or cancel editing
+  useHotkeys(
+    "escape",
+    (e) => {
+      e.preventDefault();
+      if (editingCell) {
+        setEditingCell(null);
+        return;
+      }
+      if (activeCell) {
+        rejectSuggestion(activeCell.rowId, activeCell.columnKey);
+        setActiveCell(null);
+      }
+    },
+    { enableOnFormTags: true }
+  );
+
+  // Undo shortcut (Cmd+Z / Ctrl+Z)
+  useHotkeys(
+    "mod+z",
+    (e) => {
+      e.preventDefault();
+      if (history.length > 0) {
+        const lastEntry = history[history.length - 1];
+        undoLastChange(lastEntry.rowId, lastEntry.columnKey);
+        addToast("Undo: Reverted last change", "info");
+      }
+    },
+    { enableOnFormTags: false }
+  );
+
+  // Enter key to start editing or apply suggestion
+  useHotkeys(
+    "enter",
+    (e) => {
+      if (editingCell) return; // Already editing
+      e.preventDefault();
+      if (activeCell) {
+        const row = rows.find((r) => r.id === activeCell.rowId);
+        const cellStatus = row?.status[activeCell.columnKey];
+        
+        // If cell has AI suggestion, apply it
+        if (cellStatus?.state === "ai-suggestion" && cellStatus.suggestion) {
+          applySuggestion(activeCell.rowId, activeCell.columnKey);
+          jumpToNextError();
+        } else {
+          // Otherwise, enter edit mode
+          setEditingCell({ rowId: activeCell.rowId, columnKey: activeCell.columnKey });
+        }
+      }
+    },
+    { enableOnFormTags: false }
+  );
+
+  // F2 to edit cell (Excel-like)
+  useHotkeys(
+    "f2",
+    (e) => {
+      e.preventDefault();
+      if (activeCell && !editingCell) {
+        setEditingCell({ rowId: activeCell.rowId, columnKey: activeCell.columnKey });
+      }
+    },
+    { enableOnFormTags: false }
+  );
+
+  // Delete/Backspace to clear cell
+  useHotkeys(
+    "delete,backspace",
+    (e) => {
+      if (editingCell) return;
+      e.preventDefault();
+      if (activeCell) {
+        updateCellValue(activeCell.rowId, activeCell.columnKey, "");
+        addToast("Cell cleared", "info");
+      }
+    },
+    { enableOnFormTags: false }
+  );
+
+  // Arrow key navigation
+  useHotkeys(
+    "up,down,left,right",
+    (e, handler) => {
+      e.preventDefault();
+      if (!activeCell) return;
+
+      const currentRowIndex = rows.findIndex((r) => r.id === activeCell.rowId);
+      const currentColIndex = columns.findIndex(
+        (c) => c.key === activeCell.columnKey
+      );
+
+      let newRowIndex = currentRowIndex;
+      let newColIndex = currentColIndex;
+
+      switch (handler.keys?.join("")) {
+        case "up":
+          newRowIndex = Math.max(0, currentRowIndex - 1);
+          break;
+        case "down":
+          newRowIndex = Math.min(rows.length - 1, currentRowIndex + 1);
+          break;
+        case "left":
+          newColIndex = Math.max(0, currentColIndex - 1);
+          break;
+        case "right":
+          newColIndex = Math.min(columns.length - 1, currentColIndex + 1);
+          break;
+      }
+
+      setActiveCell({
+        rowId: rows[newRowIndex].id,
+        columnKey: columns[newColIndex].key,
+      });
+    },
+    { enableOnFormTags: false }
+  );
+
+  // Scroll active cell into view
+  useEffect(() => {
+    if (activeCellRef.current) {
+      activeCellRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
+    }
+  }, [activeCell]);
+
+  const handleCellClick = (rowId: string, columnKey: string) => {
+    if (editingCell) return;
+    setActiveCell({ rowId, columnKey });
+  };
+
+  const handleCellDoubleClick = (rowId: string, columnKey: string) => {
+    setEditingCell({ rowId, columnKey });
+  };
+
+  const handleEditComplete = (rowId: string, columnKey: string, newValue: string) => {
+    const row = rows.find((r) => r.id === rowId);
+    if (row && row.data[columnKey] !== newValue) {
+      updateCellValue(rowId, columnKey, newValue);
+    }
+    setEditingCell(null);
+  };
+
+  const handleApply = () => {
+    if (activeCell) {
+      applySuggestion(activeCell.rowId, activeCell.columnKey);
+      jumpToNextError();
+    }
+  };
+
+  const handleReject = () => {
+    if (activeCell) {
+      rejectSuggestion(activeCell.rowId, activeCell.columnKey);
+      setActiveCell(null);
+    }
+  };
+
+  const handleFixColumn = () => {
+    if (activeCell) {
+      // Count how many cells will be fixed
+      const columnKey = activeCell.columnKey;
+      const fixCount = rows.filter(
+        (r) => r.status[columnKey]?.state === "ai-suggestion"
+      ).length;
+      
+      // Mark all cells in column as recently fixed
+      const fixedKeys = rows
+        .filter((r) => r.status[columnKey]?.state === "ai-suggestion")
+        .map((r) => `${r.id}-${columnKey}`);
+      setRecentlyFixed(new Set(fixedKeys));
+      
+      applyColumnFix(columnKey);
+      
+      addToast(`Fixed ${fixCount} cells in column`, "success");
+      
+      // Clear recently fixed after animation
+      setTimeout(() => setRecentlyFixed(new Set()), 500);
+      
+      jumpToNextError();
+    }
+  };
+
+  return (
+    <div className="relative" ref={gridRef}>
+      <div className="overflow-auto overscroll-x-contain border border-gray-200 rounded-lg bg-white shadow-sm pr-2">
+        <table className="w-full border-separate border-spacing-0 text-sm">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="w-10 px-2 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                #
+              </th>
+              {columns.map((column) => (
+                <th
+                  key={column.key}
+                  className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200 last:border-r-0"
+                  style={{ width: column.width, minWidth: column.width }}
+                >
+                  {column.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRows.map((row, rowIndex) => {
+              const hasActiveCell = activeCell?.rowId === row.id;
+              const activeCellState = hasActiveCell ? row.status[activeCell.columnKey]?.state : null;
+              
+              return (
+              <tr
+                key={row.id}
+                className={cn(
+                  "border-b border-gray-100 hover:bg-gray-50/50 transition-colors",
+                  row.locked && "opacity-60",
+                  // Highlight entire row when an issue cell is selected
+                  hasActiveCell && activeCellState === "ai-suggestion" && "bg-yellow-50/30",
+                  hasActiveCell && activeCellState === "duplicate" && "bg-orange-50/30",
+                  hasActiveCell && activeCellState === "critical" && "bg-red-50/30"
+                )}
+              >
+                <td className="w-10 px-2 py-2 text-xs text-gray-400 border-r border-gray-200 bg-gray-50/50 tabular-nums">
+                  {rowIndex + 1}
+                </td>
+                {columns.map((column) => {
+                  const isActive =
+                    activeCell?.rowId === row.id &&
+                    activeCell?.columnKey === column.key;
+                  return (
+                    <GridCell
+                      key={`${row.id}-${column.key}`}
+                      ref={isActive ? activeCellRef : null}
+                      rowId={row.id}
+                      columnKey={column.key}
+                      value={row.data[column.key] || ""}
+                      status={row.status[column.key]}
+                      isActive={isActive}
+                      isLocked={row.locked}
+                      isRecentlyFixed={recentlyFixed.has(`${row.id}-${column.key}`)}
+                      onClick={() => handleCellClick(row.id, column.key)}
+                      onDoubleClick={() => handleCellDoubleClick(row.id, column.key)}
+                      isEditing={editingCell?.rowId === row.id && editingCell?.columnKey === column.key}
+                      onEditComplete={(value: string) => handleEditComplete(row.id, column.key, value)}
+                    />
+                  );
+                })}
+              </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* AI Suggestion Popover */}
+      {showPopover && activeCellRef.current && activeCell && (
+        <AISuggestionPopover
+          key={`${activeCell.rowId}-${activeCell.columnKey}`}
+          anchorEl={activeCellRef.current}
+          status={activeCellStatus}
+          rowId={activeCell.rowId}
+          columnKey={activeCell.columnKey}
+          onApply={handleApply}
+          onReject={handleReject}
+          onFixColumn={handleFixColumn}
+        />
+      )}
+    </div>
+  );
+}
