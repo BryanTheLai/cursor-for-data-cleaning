@@ -86,7 +86,7 @@ export function RulesSettings({ isOpen, onClose, onSave }: RulesSettingsProps) {
   };
 
   const handleSave = () => {
-    localStorage.setItem("dwmtcd-rules", JSON.stringify(rules));
+    persistRules(rules);
     onSave?.(rules);
     setHasChanges(false);
     onClose();

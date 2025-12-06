@@ -24,6 +24,7 @@ export interface FieldRule {
   label: string;
   type: FieldType;
   required?: boolean;
+  format?: string;
   constraints?: FieldConstraint[];
   config?: {
     decimalPlaces?: number;
@@ -501,7 +502,9 @@ export function getTargetSchemaFromRules(ruleSet: RuleSet): Array<{
     label: field.label,
     type: field.type,
     required: field.required || false,
-    rules: field.constraints?.map(c => c.config?.message).filter(Boolean).join('. ') || null,
+    rules: field.format
+      ? field.format
+      : field.constraints?.map(c => c.config?.message).filter(Boolean).join('. ') || null,
   }));
 }
 
