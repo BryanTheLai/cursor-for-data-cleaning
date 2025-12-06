@@ -85,6 +85,37 @@ export const DEFAULT_RULE_CONFIG: RuleConfig[] = [
   { id: '6', key: 'date', label: 'Date', type: 'date', required: false, enabled: true, format: 'YYYY-MM-DD' },
 ];
 
+export function buildRuleSetFromConfig(configs: RuleConfig[], fallback: RuleSet): RuleSet {
+  const fallbackMap = new Map(fallback.fields.map((field) => [field.key, field]));
+  const fields: FieldRule[] = [];
+
+  configs.forEach((config) => {
+    if (!config.enabled) return;
+    const template = fallbackMap.get(config.key);
+    if (template) {
+      fields.push({
+        ...template,
+        label: config.label,
+        type: config.type,
+        required: config.required,
+        format: config.format,
+        config: config.options ? { ...template.config, options: config.options } : template.config,
+      });
+      return;
+    }
+
+    fields.push({
+      key: config.key,
+      label: config.label,
+      type: config.type,
+      required: config.required,
+      format: config.format,
+    });
+  });
+
+  return { name: 'Custom Rules', fields };
+}
+
 function normalizeString(value: string): string {
   return value.toLowerCase().trim().replace(/\s+/g, ' ');
 }

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Upload, FileSpreadsheet, ArrowRight, X, Check, AlertTriangle, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { parseFile, getSampleRows, type ParsedFile } from "@/lib/fileParser";
 import type { ColumnMappingResult } from "@/lib/groq";
-import { PAYROLL_RULES, getTargetSchemaFromRules } from "@/lib/rulesEngine";
+import { PAYROLL_RULES, getTargetSchemaFromRules, buildRuleSetFromConfig } from "@/lib/rulesEngine";
+import { useRuleStore } from "@/store/useRuleStore";
 
 type WizardStep = "upload" | "mapping" | "review";
 
@@ -17,14 +18,6 @@ interface TargetColumn {
   required: boolean;
   rules?: string;
 }
-
-const DEFAULT_TARGET_SCHEMA: TargetColumn[] = getTargetSchemaFromRules(PAYROLL_RULES).map(f => ({
-  key: f.key,
-  label: f.label,
-  type: f.type,
-  required: f.required,
-  rules: f.rules || undefined,
-}));
 
 interface ImportWizardProps {
   isOpen: boolean;
@@ -280,8 +273,17 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
   
   const [manualMappings, setManualMappings] = useState<Record<string, string | null>>({});
   const [ignoredColumns, setIgnoredColumns] = useState<Set<string>>(new Set());
-
-  const targetSchema = DEFAULT_TARGET_SCHEMA;
+  const { rules: ruleConfigs } = useRuleStore();
+  const targetSchema = useMemo<TargetColumn[]>(() => {
+    const ruleSet = buildRuleSetFromConfig(ruleConfigs, PAYROLL_RULES);
+    return getTargetSchemaFromRules(ruleSet).map((f): TargetColumn => ({
+      key: f.key,
+      label: f.label,
+      type: f.type,
+      required: f.required,
+      rules: f.rules || undefined,
+    }));
+  }, [ruleConfigs]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -380,8 +382,8 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
   const getMissingRequiredTargets = (): string[] => {
     const mappedTargets = getMappedTargets();
     return targetSchema
-      .filter(col => col.required && !mappedTargets.has(col.key))
-      .map(col => col.label);
+      .filter((col: TargetColumn) => col.required && !mappedTargets.has(col.key))
+      .map((col: TargetColumn) => col.label);
   };
 
   const handleMappingChange = (sourceCol: string, targetKey: string | null) => {
@@ -462,7 +464,7 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
     mappings[h] === null && !ignoredColumns.has(h)
   ) || [];
 
-  const missingTargets = targetSchema.filter(t => !mappedTargets.has(t.key));
+  const missingTargets: TargetColumn[] = targetSchema.filter((t: TargetColumn) => !mappedTargets.has(t.key));
 
   const getSampleValue = (col: string) => {
     if (!parsedFile || parsedFile.rows.length === 0) return undefined;
