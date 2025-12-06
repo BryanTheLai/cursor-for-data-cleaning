@@ -1,43 +1,42 @@
 "use client";
 
-import { useState } from "react";
-import { Send, Check, Clock, ExternalLink, RefreshCw } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Send, Check, Clock, ExternalLink, RefreshCw, Copy, CheckCircle2 } from "lucide-react";
 import { useGridStore } from "@/store/useGridStore";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function WhatsAppPanel() {
-  const { whatsappRequests, receiveWhatsAppReply } = useGridStore();
-  const [simulatingId, setSimulatingId] = useState<string | null>(null);
+  const { whatsappRequests, pollForWhatsAppReplies, isPolling } = useGridStore();
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const pendingCount = whatsappRequests.filter((r) => r.status === "pending").length;
   const repliedCount = whatsappRequests.filter((r) => r.status === "replied").length;
 
-  const simulateReply = (requestId: string) => {
-    setSimulatingId(requestId);
-    // Simulate a 1.5s delay before reply
-    setTimeout(() => {
-      const request = whatsappRequests.find((r) => r.id === requestId);
-      if (request) {
-        // Generate mock reply based on field
-        let mockValue = "";
-        switch (request.missingField) {
-          case "bank":
-            mockValue = "MBB";
-            break;
-          case "name":
-            mockValue = "John Smith";
-            break;
-          case "accountNumber":
-            mockValue = "1234-5678-9012";
-            break;
-          default:
-            mockValue = "Filled Value";
-        }
-        receiveWhatsAppReply(requestId, mockValue);
-      }
-      setSimulatingId(null);
-    }, 1500);
+  const poll = useCallback(() => {
+    if (pendingCount > 0) {
+      pollForWhatsAppReplies();
+    }
+  }, [pendingCount, pollForWhatsAppReplies]);
+
+  useEffect(() => {
+    if (pendingCount === 0) return;
+    
+    poll();
+    const interval = setInterval(poll, 3000);
+    return () => clearInterval(interval);
+  }, [pendingCount, poll]);
+
+  const copyFormLink = async (requestId: string) => {
+    const formLink = `${window.location.origin}/verify/${requestId}`;
+    await navigator.clipboard.writeText(formLink);
+    setCopiedId(requestId);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const openFormLink = (requestId: string) => {
+    const formLink = `${window.location.origin}/verify/${requestId}`;
+    window.open(formLink, '_blank');
   };
 
   const formatTime = (date: Date) => {
@@ -53,7 +52,12 @@ export function WhatsAppPanel() {
       {/* Stats */}
       <div className="flex items-center gap-4 p-4 border-b border-gray-200 bg-gray-50">
         <div className="flex-1 text-center">
-          <p className="text-2xl font-bold text-orange-600">{pendingCount}</p>
+          <div className="flex items-center justify-center gap-1">
+            <p className="text-2xl font-bold text-orange-600">{pendingCount}</p>
+            {isPolling && pendingCount > 0 && (
+              <RefreshCw className="h-3 w-3 text-orange-500 animate-spin" />
+            )}
+          </div>
           <p className="text-xs text-gray-500">Pending</p>
         </div>
         <div className="w-px h-8 bg-gray-200" />
@@ -122,20 +126,30 @@ export function WhatsAppPanel() {
                   </span>
 
                   {request.status === "pending" && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 text-xs"
-                      onClick={() => simulateReply(request.id)}
-                      disabled={simulatingId === request.id}
-                    >
-                      {simulatingId === request.id ? (
-                        <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                      ) : (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-xs px-2"
+                        onClick={() => copyFormLink(request.id)}
+                        title="Copy form link"
+                      >
+                        {copiedId === request.id ? (
+                          <CheckCircle2 className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 text-xs"
+                        onClick={() => openFormLink(request.id)}
+                      >
                         <ExternalLink className="h-3 w-3 mr-1" />
-                      )}
-                      {simulatingId === request.id ? "Waiting..." : "Simulate Reply"}
-                    </Button>
+                        Open Form
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>

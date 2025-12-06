@@ -4,9 +4,10 @@ export const COLUMNS: ColumnDef[] = [
   { key: "id", header: "ID", width: 80 },
   { key: "name", header: "Payee Name", width: 180 },
   { key: "amount", header: "Amount (RM)", width: 120 },
-  { key: "bank", header: "Bank", width: 120 },
-  { key: "accountNumber", header: "Account Number", width: 160 },
-  { key: "date", header: "Date", width: 120 },
+  { key: "bank", header: "Bank", width: 100 },
+  { key: "accountNumber", header: "Account Number", width: 140 },
+  { key: "phone", header: "Phone", width: 130 },
+  { key: "date", header: "Date", width: 110 },
 ];
 
 export const MOCK_ROWS: RowData[] = [
@@ -18,7 +19,8 @@ export const MOCK_ROWS: RowData[] = [
       name: "mr. ali ahmad",
       amount: "rm 5,000",
       bank: "maybank",
-      accountNumber: "1234-5678-9012",
+      accountNumber: "1234567890123",
+      phone: "0123456789",
       date: "2024-03-15",
     },
     status: {
@@ -46,6 +48,14 @@ export const MOCK_ROWS: RowData[] = [
         message: "Normalize bank code: Maybank → MBB",
         source: "ai",
       },
+      phone: {
+        state: "ai-suggestion",
+        originalValue: "0123456789",
+        suggestion: "+60123456789",
+        confidence: 0.99,
+        message: "Added country code +60",
+        source: "ai",
+      },
     },
     locked: false,
     phoneNumber: "+60123456789",
@@ -58,7 +68,8 @@ export const MOCK_ROWS: RowData[] = [
       name: "Tenaga Nasional",
       amount: "500.00",
       bank: "CIMB",
-      accountNumber: "800-111-222",
+      accountNumber: "800111222",
+      phone: "+60198765432",
       date: "2024-03-15",
     },
     status: {
@@ -79,7 +90,8 @@ export const MOCK_ROWS: RowData[] = [
       name: "TechCorp Sdn Bhd",
       amount: "5500.00",
       bank: "PBB",
-      accountNumber: "9876-5432-1098",
+      accountNumber: "987654321098",
+      phone: "+60156789012",
       date: "2024-03-15",
     },
     status: {
@@ -99,7 +111,8 @@ export const MOCK_ROWS: RowData[] = [
       name: "Jane Doe",
       amount: "2300.00",
       bank: "",
-      accountNumber: "5555-6666-7777",
+      accountNumber: "555566667777",
+      phone: "+60112345678",
       date: "2024-03-15",
     },
     status: {
@@ -120,7 +133,8 @@ export const MOCK_ROWS: RowData[] = [
       name: "Clean Data Co",
       amount: "1200.00",
       bank: "RHB",
-      accountNumber: "1111-2222-3333",
+      accountNumber: "111122223333",
+      phone: "+60187654321",
       date: "2024-03-15",
     },
     status: {},
@@ -135,6 +149,7 @@ export const MOCK_ROWS: RowData[] = [
       amount: "RM 3,500",
       bank: "public bank",
       accountNumber: "7777888899990000",
+      phone: "0198765432",
       date: "15-03-2024",
     },
     status: {
@@ -162,6 +177,14 @@ export const MOCK_ROWS: RowData[] = [
         message: "Normalize bank code: Public Bank → PBB",
         source: "ai",
       },
+      phone: {
+        state: "ai-suggestion",
+        originalValue: "0198765432",
+        suggestion: "+60198765432",
+        confidence: 0.99,
+        message: "Added country code +60",
+        source: "ai",
+      },
       date: {
         state: "ai-suggestion",
         originalValue: "15-03-2024",
@@ -172,7 +195,7 @@ export const MOCK_ROWS: RowData[] = [
       },
     },
     locked: false,
-    phoneNumber: "+60187654321",
+    phoneNumber: "+60198765432",
   },
   {
     id: "row-7",
@@ -182,7 +205,8 @@ export const MOCK_ROWS: RowData[] = [
       name: "EVIL CORP SDN BHD",
       amount: "1000000.00",
       bank: "MBB",
-      accountNumber: "999-999-999",
+      accountNumber: "999999999",
+      phone: "+60111222333",
       date: "2024-03-15",
     },
     status: {
@@ -210,7 +234,8 @@ export const MOCK_ROWS: RowData[] = [
       name: "Ahmad bin Hassan",
       amount: "2400.00",
       bank: "CIMB",
-      accountNumber: "155-200-300",
+      accountNumber: "155200300",
+      phone: "+60145678901",
       date: "2024-03-15",
     },
     status: {
@@ -230,7 +255,8 @@ export const MOCK_ROWS: RowData[] = [
       name: "Verified Corp",
       amount: "8500.00",
       bank: "HLB",
-      accountNumber: "4444-3333-2222",
+      accountNumber: "444433332222",
+      phone: "+60167890123",
       date: "2024-03-15",
     },
     status: {
@@ -250,7 +276,8 @@ export const MOCK_ROWS: RowData[] = [
       name: "",
       amount: "750.00",
       bank: "AMB",
-      accountNumber: "6666-5555-4444",
+      accountNumber: "666655554444",
+      phone: "+60176543210",
       date: "2024-03-15",
     },
     status: {

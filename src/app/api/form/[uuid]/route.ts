@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
+import { demoStore } from '@/lib/demoStore';
+import { PAYROLL_RULES, getTargetSchemaFromRules } from '@/lib/rulesEngine';
 
 export async function GET(
   request: NextRequest,
@@ -9,6 +11,38 @@ export async function GET(
   const { uuid } = await params;
   log.api.info('GET /api/form/[uuid] - received', { uuid });
   
+  const demoRequest = demoStore.getRequest(uuid);
+  if (demoRequest) {
+    log.api.info('Demo mode - returning from demoStore', { uuid });
+    
+    if (demoRequest.status === 'submitted') {
+      return NextResponse.json(
+        { error: 'Form has already been submitted' },
+        { status: 400 }
+      );
+    }
+
+    if (demoRequest.status === 'sent') {
+      demoStore.updateStatus(uuid, 'clicked');
+    }
+
+    const targetColumns = getTargetSchemaFromRules(PAYROLL_RULES);
+
+    return NextResponse.json({
+      requestId: uuid,
+      recipientName: demoRequest.recipientName,
+      workspaceName: 'Demo Workspace',
+      existingData: demoRequest.existingData,
+      missingFields: demoRequest.missingFields,
+      targetColumns: targetColumns.map(col => ({
+        key: col.key,
+        label: col.label,
+        type: col.type,
+        required: col.required,
+      })),
+    });
+  }
+
   try {
     const supabase = createServerSupabaseClient();
 
@@ -104,6 +138,27 @@ export async function POST(
         { error: 'No data submitted' },
         { status: 400 }
       );
+    }
+
+    const demoRequest = demoStore.getRequest(uuid);
+    if (demoRequest) {
+      log.api.info('Demo mode - submitting to demoStore', { uuid });
+      
+      if (demoRequest.status === 'submitted') {
+        return NextResponse.json(
+          { error: 'Form has already been submitted' },
+          { status: 400 }
+        );
+      }
+
+      demoStore.submitForm(uuid, submittedData);
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Data submitted successfully',
+        rowId: demoRequest.rowId,
+        data: submittedData,
+      });
     }
 
     const supabase = createServerSupabaseClient();

@@ -15,7 +15,7 @@ import { cn, getFormatDescription } from "@/lib/utils";
 import { useGridStore } from "@/store/useGridStore";
 
 interface AISuggestionPopoverProps {
-  anchorEl: HTMLElement;
+  anchorEl: HTMLElement | null;
   status: CellStatus;
   rowId: string;
   columnKey: string;
@@ -40,7 +40,7 @@ export function AISuggestionPopover({
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const row = rows.find((r) => r.id === rowId);
-  const hasPhoneNumber = !!row?.phoneNumber;
+  const hasPhoneNumber = !!(row?.phoneNumber || row?.data?.phone);
 
   const { refs, floatingStyles, update } = useFloating({
     elements: {
@@ -58,9 +58,14 @@ export function AISuggestionPopover({
   }, []);
 
   useEffect(() => {
+    if (!anchorEl || !document.body.contains(anchorEl)) return;
     refs.setReference(anchorEl);
     update();
   }, [anchorEl, refs, update]);
+
+  if (!anchorEl || !document.body.contains(anchorEl)) {
+    return null;
+  }
 
   const handleWhatsAppRequest = () => {
     sendWhatsAppRequest(rowId, columnKey);
@@ -88,7 +93,7 @@ export function AISuggestionPopover({
       <div
         ref={popoverRef}
         className={cn(
-          "w-80 max-h-[360px] bg-white border border-gray-300 rounded-md shadow-lg flex flex-col",
+          "w-80 max-h-[360px] bg-white border border-gray-300 shadow-lg flex flex-col",
           "transition-opacity duration-150 ease-out",
           isVisible ? "opacity-100" : "opacity-0"
         )}
@@ -106,7 +111,7 @@ export function AISuggestionPopover({
           </div>
           <button
             onClick={onReject}
-            className="p-1 hover:bg-gray-100 rounded transition-colors"
+            className="p-1 hover:bg-gray-100 transition-colors"
           >
             <X className="h-4 w-4 text-gray-400" />
           </button>
@@ -117,13 +122,13 @@ export function AISuggestionPopover({
             <div className="space-y-2">
               {/* Before/After visual */}
               <div className="flex items-center gap-2 text-sm">
-                <div className="flex-1 px-2 py-1.5 bg-red-50 border border-red-100 rounded text-red-700 truncate" title={status.originalValue}>
+                <div className="flex-1 px-2 py-1.5 bg-red-50 border border-red-100 text-red-700 truncate" title={status.originalValue}>
                   {status.originalValue}
                 </div>
                 {status.suggestion && (
                   <>
                     <ArrowRight className="h-4 w-4 text-gray-400 shrink-0" />
-                    <div className="flex-1 px-2 py-1.5 bg-green-50 border border-green-100 rounded text-green-700 font-medium truncate" title={status.suggestion}>
+                    <div className="flex-1 px-2 py-1.5 bg-green-50 border border-green-100 text-green-700 font-medium truncate" title={status.suggestion}>
                       {status.suggestion}
                     </div>
                   </>
@@ -139,22 +144,22 @@ export function AISuggestionPopover({
           )}
 
           {status.message && (
-            <p className="text-xs text-gray-600 bg-gray-50 px-2 py-1.5 rounded">{status.message}</p>
+            <p className="text-xs text-gray-600 bg-gray-50 px-2 py-1.5">{status.message}</p>
           )}
         </div>
 
-        <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-200 bg-gray-50 rounded-b-md">
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-200 bg-gray-50">
           {status.state === "ai-suggestion" && status.suggestion && (
             <>
               <Button size="sm" onClick={onApply} className="flex-1 justify-center" title="Accept this fix and move to next issue">
                 <Check className="h-4 w-4" />
-                <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-gray-700 rounded text-white">
+                <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-gray-700 text-white">
                   Tab
                 </kbd>
               </Button>
-              <Button size="sm" variant="ghost" onClick={onReject} title="Keep original value" className="justify-center">
+              <Button size="sm" variant="destructive" onClick={onReject} title="Keep original value" className="justify-center bg-red-500 hover:bg-red-600">
                 <X className="h-4 w-4" />
-                <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-gray-200 rounded text-gray-600">
+                <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-red-700 text-white">
                   Esc
                 </kbd>
               </Button>
@@ -167,9 +172,12 @@ export function AISuggestionPopover({
               variant="outline"
               onClick={onFixColumn}
               className="flex-1 justify-center"
-              title="Apply all suggestions in this column"
+              title="Apply all suggestions in this column (Shift+Tab)"
             >
               Fix All
+              <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-gray-200 text-gray-600">
+                ⇧Tab
+              </kbd>
             </Button>
           )}
 
@@ -211,7 +219,7 @@ export function AISuggestionPopover({
                     placeholder="Enter reason for override..."
                     value={overrideReason}
                     onChange={(e) => setOverrideReason(e.target.value)}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
                     autoFocus
                   />
                   <div className="flex gap-2">

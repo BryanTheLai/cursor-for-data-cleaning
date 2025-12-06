@@ -89,14 +89,14 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg transition-all duration-300",
+        "flex items-center gap-3 px-4 py-3 border shadow-lg transition-all duration-300",
         bgColors[toast.type],
         isVisible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
       )}
     >
       {icons[toast.type]}
       <span className="text-sm text-gray-700">{toast.message}</span>
-      <button onClick={onClose} className="ml-2 hover:bg-gray-200 rounded p-0.5">
+      <button onClick={onClose} className="ml-2 hover:bg-gray-200 p-0.5">
         <X className="h-3 w-3 text-gray-400" />
       </button>
     </div>

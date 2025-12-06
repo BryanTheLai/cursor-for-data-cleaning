@@ -3,6 +3,7 @@ import { sendWhatsAppMessage, buildFormLink, buildWhatsAppMessage } from '@/lib/
 import { createServerSupabaseClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import { v4 as uuidv4 } from 'uuid';
+import { demoStore } from '@/lib/demoStore';
 
 export interface SendWhatsAppRequest {
   workspaceId: string;
@@ -10,6 +11,21 @@ export interface SendWhatsAppRequest {
   phoneNumber: string;
   recipientName: string;
   missingFields: string[];
+  existingData?: Record<string, string>;
+}
+
+function isValidUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
+function normalizePhone(phone: string): string | null {
+  if (!phone) return null;
+  let cleaned = phone.replace(/[\s\-\(\)\.]/g, '');
+  if (cleaned.startsWith('+')) return cleaned;
+  if (cleaned.startsWith('0')) return '+60' + cleaned.slice(1);
+  if (/^\d{9,15}$/.test(cleaned)) return '+60' + cleaned;
+  return cleaned.length >= 4 ? '+60' + cleaned : null;
 }
 
 export async function POST(request: NextRequest) {
@@ -18,11 +34,18 @@ export async function POST(request: NextRequest) {
   try {
     const body: SendWhatsAppRequest = await request.json();
     
+    const isDemoMode = !isValidUUID(body.workspaceId) || 
+                       process.env.DEMO_MODE === 'true' || 
+                       !process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    const normalizedPhone = normalizePhone(body.phoneNumber);
+    
     log.whatsapp.info('WhatsApp send request', {
       workspaceId: body.workspaceId,
       rowId: body.rowId,
-      phoneNumber: body.phoneNumber?.slice(-4),
+      phoneNumber: normalizedPhone?.slice(-4),
       missingFields: body.missingFields,
+      demoMode: isDemoMode,
     });
 
     if (!body.phoneNumber) {
@@ -53,15 +76,45 @@ export async function POST(request: NextRequest) {
       messageLength: message.length 
     });
 
+    if (isDemoMode) {
+      log.whatsapp.info('Demo mode - storing in demoStore', { requestId });
+      
+      demoStore.createRequest({
+        id: requestId,
+        rowId: body.rowId,
+        recipientName: body.recipientName || 'Unknown',
+        phoneNumber: normalizedPhone || body.phoneNumber,
+        missingFields: body.missingFields,
+        existingData: body.existingData || {},
+        formUrl: formLink,
+      });
+      
+      return NextResponse.json({
+        success: true,
+        requestId,
+        formLink,
+        messageSid: `demo_${requestId}`,
+        demoMode: true,
+        message: 'Demo mode: WhatsApp message simulated. Use the form link to test.',
+      });
+    }
+
+    if (!normalizedPhone) {
+      return NextResponse.json(
+        { error: 'Invalid phone number format for production mode' },
+        { status: 400 }
+      );
+    }
+
     const supabase = createServerSupabaseClient();
 
-    const { data: whatsappRequest, error: insertError } = await supabase
+    const { error: insertError } = await supabase
       .from('whatsapp_requests')
       .insert({
         id: requestId,
         workspace_id: body.workspaceId,
         row_id: body.rowId,
-        phone_number: body.phoneNumber,
+        phone_number: normalizedPhone,
         missing_fields: body.missingFields,
         status: 'sent',
         form_url: formLink,
@@ -91,7 +144,7 @@ export async function POST(request: NextRequest) {
       log.supabase.warn('Failed to update row WhatsApp status', { error: updateError.message });
     }
 
-    const result = await sendWhatsAppMessage(body.phoneNumber, message);
+    const result = await sendWhatsAppMessage(normalizedPhone, message);
 
     if (!result.success) {
       log.whatsapp.error('Twilio send failed', { error: result.error });

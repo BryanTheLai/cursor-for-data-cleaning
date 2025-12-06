@@ -152,8 +152,8 @@ export default function VerifyPage() {
   if (error && !formData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="max-w-md w-full bg-white  shadow-lg p-8 text-center">
+          <div className="w-16 h-16 bg-red-100  flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="h-8 w-8 text-red-600" />
           </div>
           <h1 className="text-xl font-semibold text-gray-900">Link Invalid</h1>
@@ -169,8 +169,8 @@ export default function VerifyPage() {
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="max-w-md w-full bg-white  shadow-lg p-8 text-center">
+          <div className="w-16 h-16 bg-green-100  flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
           <h1 className="text-xl font-semibold text-gray-900">Thank You!</h1>
@@ -190,15 +190,17 @@ export default function VerifyPage() {
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Shield className="h-6 w-6 text-blue-600" />
-            <h1 className="text-xl font-semibold text-gray-900">RytFlow Verification</h1>
+            <Shield className="h-6 w-6 text-emerald-600" />
+            <h1 className="text-xl font-semibold text-gray-900">
+              dwmtcd<span className="text-emerald-600">.</span> Verification
+            </h1>
           </div>
           <p className="text-sm text-gray-600">
             Please provide the missing information for your payment
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-white  shadow-lg overflow-hidden">
           <div className="bg-blue-50 p-4 border-b border-blue-100">
             <p className="text-sm text-blue-700">Data Request</p>
             <p className="text-lg font-semibold text-blue-900 mt-1">
@@ -246,7 +248,7 @@ export default function VerifyPage() {
                       value={fieldValues[field] || ""}
                       onChange={(e) => handleFieldChange(field, e.target.value)}
                       className={cn(
-                        "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
+                        "flex h-10 w-full  border border-input bg-background px-3 py-2 text-sm",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                         !fieldValues[field] && "text-gray-400"
                       )}
@@ -301,7 +303,7 @@ export default function VerifyPage() {
             })}
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              <div className="p-3 bg-red-50 border border-red-200  text-sm text-red-700">
                 {error}
               </div>
             )}

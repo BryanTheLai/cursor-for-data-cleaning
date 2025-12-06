@@ -3,6 +3,7 @@ import type { RowData, CellStatus, WhatsAppRequest, HistoryEntry, ColumnDef } fr
 import { MOCK_ROWS, COLUMNS } from "@/data/mockData";
 import { v4 as uuidv4 } from "uuid";
 import { autoFormat } from "@/lib/utils";
+import { PAYROLL_RULES, processRowWithRules, getRuleByKey } from "@/lib/rulesEngine";
 import type { ImportResult } from "@/components/ImportWizard";
 
 interface ActiveCell {
@@ -22,6 +23,7 @@ interface GridState {
   history: HistoryEntry[];
   filter: FilterType;
   isImporting: boolean;
+  isPolling: boolean;
   
   setActiveCell: (cell: ActiveCell | null) => void;
   setFileName: (name: string) => void;
@@ -35,8 +37,10 @@ interface GridState {
   applyColumnFix: (columnKey: string) => void;
   jumpToNextError: () => ActiveCell | null;
   undoLastChange: (rowId: string, columnKey: string) => void;
-  sendWhatsAppRequest: (rowId: string, columnKey: string) => Promise<void>;
+  sendWhatsAppRequest: (rowId: string, columnKey: string) => Promise<unknown>;
   receiveWhatsAppReply: (requestId: string, value: string) => void;
+  pollForWhatsAppReplies: () => Promise<void>;
+  handleFormSubmission: (rowId: string, data: Record<string, string>) => void;
   updateCellValue: (rowId: string, columnKey: string, value: string) => void;
   setCellStatus: (rowId: string, columnKey: string, status: CellStatus) => void;
   resolveDuplicate: (rowId: string, columnKey: string, action: "proceed" | "skip") => void;
@@ -54,6 +58,7 @@ export const useGridStore = create<GridState>((set, get) => ({
   history: [],
   filter: "all",
   isImporting: false,
+  isPolling: false,
 
   setActiveCell: (cell) => set({ activeCell: cell }),
   setFileName: (name) => set({ fileName: name }),
@@ -118,28 +123,40 @@ export const useGridStore = create<GridState>((set, get) => ({
           if (col.key === "phone" && value) {
             phoneNumber = value;
           }
-
-          if (col.required && !value) {
-            status[col.key] = {
-              state: "critical",
-              message: `Missing required field: ${col.label}`,
-              source: "missing",
-            };
-          } else if (value) {
-            const { normalized, changed } = autoFormat(value, col.key);
-            if (changed) {
-              status[col.key] = {
-                state: "ai-suggestion",
-                originalValue: value,
-                suggestion: normalized,
-                confidence: 0.9,
-                message: `Suggested format: ${normalized}`,
-                source: "ai",
-              };
-              data[col.key] = value;
-            }
-          }
         });
+
+        const ruleResult = processRowWithRules(data, PAYROLL_RULES);
+
+        for (const change of ruleResult.changes) {
+          status[change.column] = {
+            state: "ai-suggestion",
+            originalValue: data[change.column],
+            suggestion: change.cleaned,
+            confidence: 0.9,
+            message: change.reason,
+            source: "ai",
+          };
+        }
+
+        for (const error of ruleResult.errors) {
+          if (!status[error.column]) {
+            status[error.column] = {
+              state: error.severity === "red" ? "critical" : "ai-suggestion",
+              message: error.message,
+              source: error.message.includes("Missing") ? "missing" : "ai",
+              suggestion: error.suggestion,
+              confidence: error.confidence,
+            };
+          }
+        }
+
+        if (phoneNumber) {
+          const phoneRule = getRuleByKey(PAYROLL_RULES, "phone");
+          if (phoneRule?.transform) {
+            const { value: normalizedPhone } = phoneRule.transform(phoneNumber);
+            phoneNumber = normalizedPhone;
+          }
+        }
 
         return {
           id: rowId,
@@ -378,8 +395,14 @@ export const useGridStore = create<GridState>((set, get) => ({
     console.log("[STORE] Sending WhatsApp request", { rowId, columnKey });
     const { rows, whatsappRequests, workspaceId } = get();
     const row = rows.find((r) => r.id === rowId);
-    if (!row || !row.phoneNumber) {
-      console.warn("[STORE] Cannot send WhatsApp - no phone number");
+    
+    const phoneNumber = row?.phoneNumber || row?.data.phone;
+    if (!row || !phoneNumber) {
+      console.warn("[STORE] Cannot send WhatsApp - no phone number", { 
+        hasRow: !!row, 
+        phoneNumber,
+        rowData: row?.data 
+      });
       return;
     }
 
@@ -387,7 +410,7 @@ export const useGridStore = create<GridState>((set, get) => ({
       id: uuidv4(),
       rowId,
       recipientName: row.data.name || "Unknown",
-      recipientPhone: row.phoneNumber,
+      recipientPhone: phoneNumber,
       missingField: columnKey,
       sentAt: new Date(),
       status: "pending",
@@ -413,9 +436,10 @@ export const useGridStore = create<GridState>((set, get) => ({
         body: JSON.stringify({
           workspaceId: workspaceId || "demo",
           rowId,
-          phoneNumber: row.phoneNumber,
+          phoneNumber,
           recipientName: row.data.name || "there",
           missingFields: [columnKey],
+          existingData: row.data,
         }),
       });
 
@@ -428,10 +452,12 @@ export const useGridStore = create<GridState>((set, get) => ({
       console.log("[STORE] WhatsApp sent", result);
 
       const updatedRequests = get().whatsappRequests.map((r) =>
-        r.id === request.id ? { ...r, id: result.requestId } : r
+        r.id === request.id ? { ...r, id: result.requestId, formLink: result.formLink } : r
       );
 
       set({ whatsappRequests: updatedRequests });
+      
+      return result;
     } catch (error) {
       console.error("[STORE] WhatsApp send failed", error);
 
@@ -449,6 +475,8 @@ export const useGridStore = create<GridState>((set, get) => ({
         rows: revertedRows,
         whatsappRequests: get().whatsappRequests.filter((r) => r.id !== request.id),
       });
+      
+      throw error;
     }
   },
 
@@ -511,6 +539,111 @@ export const useGridStore = create<GridState>((set, get) => ({
           ...currentRow.status,
           [columnKey]: { state: "validated", source: "whatsapp" },
         },
+      };
+      set({ rows: updatedRows });
+    }, 2000);
+  },
+
+  pollForWhatsAppReplies: async () => {
+    const { isPolling, whatsappRequests } = get();
+    if (isPolling) return;
+    
+    const pendingRequests = whatsappRequests.filter(r => r.status === "pending");
+    if (pendingRequests.length === 0) return;
+    
+    set({ isPolling: true });
+    
+    try {
+      const response = await fetch("/api/whatsapp/poll");
+      if (!response.ok) {
+        console.warn("[STORE] Poll failed", response.status);
+        return;
+      }
+      
+      const result = await response.json();
+      
+      if (result.hasUpdates && result.submissions) {
+        for (const submission of result.submissions) {
+          get().handleFormSubmission(submission.rowId, submission.data);
+        }
+      }
+    } catch (error) {
+      console.error("[STORE] Poll error", error);
+    } finally {
+      set({ isPolling: false });
+    }
+  },
+
+  handleFormSubmission: (rowId, data) => {
+    console.log("[STORE] Handling form submission", { rowId, data });
+    const { rows, whatsappRequests, history } = get();
+    
+    const rowIndex = rows.findIndex((r) => r.id === rowId);
+    if (rowIndex === -1) {
+      console.warn("[STORE] Row not found for form submission", { rowId });
+      return;
+    }
+    
+    const row = rows[rowIndex];
+    const newRows = [...rows];
+    const newHistory = [...history];
+    const newStatus = { ...row.status };
+    const newData = { ...row.data };
+    
+    for (const [columnKey, value] of Object.entries(data)) {
+      const previousValue = row.data[columnKey] || "";
+      newData[columnKey] = value;
+      newStatus[columnKey] = { state: "live-update", source: "whatsapp" };
+      
+      newHistory.push({
+        id: uuidv4(),
+        rowId,
+        columnKey,
+        previousValue,
+        newValue: value,
+        action: "whatsapp",
+        timestamp: new Date(),
+      });
+    }
+    
+    newRows[rowIndex] = {
+      ...row,
+      data: newData,
+      status: newStatus,
+      locked: false,
+      whatsappThreadId: undefined,
+    };
+    
+    const newRequests = whatsappRequests.map((r) =>
+      r.rowId === rowId
+        ? { ...r, status: "replied" as const, repliedAt: new Date() }
+        : r
+    );
+    
+    set({
+      rows: newRows,
+      whatsappRequests: newRequests,
+      history: newHistory,
+    });
+    
+    setTimeout(() => {
+      const currentRows = get().rows;
+      const currentRowIndex = currentRows.findIndex((r) => r.id === rowId);
+      if (currentRowIndex === -1) return;
+      
+      const currentRow = currentRows[currentRowIndex];
+      const updatedStatus = { ...currentRow.status };
+      
+      for (const columnKey of Object.keys(data)) {
+        if (updatedStatus[columnKey]?.state === "live-update") {
+          updatedStatus[columnKey] = { state: "validated", source: "whatsapp" };
+        }
+      }
+      
+      const updatedRows = [...currentRows];
+      updatedRows[currentRowIndex] = {
+        ...currentRow,
+        status: updatedStatus,
       };
       set({ rows: updatedRows });
     }, 2000);

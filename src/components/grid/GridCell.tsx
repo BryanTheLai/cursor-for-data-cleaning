@@ -168,7 +168,7 @@ export const GridCell = forwardRef<HTMLTableCellElement, GridCellProps>(
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
-            className="w-full bg-white outline-none border-none text-sm px-1 py-0.5 -mx-1 -my-0.5 rounded ring-2 ring-blue-500"
+            className="w-full bg-white outline-none border-none text-sm px-1 py-0.5 -mx-1 -my-0.5 ring-2 ring-blue-500"
           />
         ) : (
           <div className="flex items-center justify-between gap-1">
@@ -186,7 +186,7 @@ export const GridCell = forwardRef<HTMLTableCellElement, GridCellProps>(
 
         {/* Suggestion indicator when active */}
         {status?.state === "ai-suggestion" && status.suggestion && isActive && (
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full border border-white" />
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 border border-white" />
         )}
 
         {/* Excel-style handle */}

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Upload, FileSpreadsheet, ChevronRight, Check, Loader2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Upload, ChevronRight, Check, Loader2, Download, Sparkles, Command, Zap, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useGridStore } from "@/store/useGridStore";
 import { ImportWizard, type ImportResult } from "@/components/ImportWizard";
+import { CommandPalette } from "@/components/ui/CommandPalette";
+import { ExportPreview } from "@/components/ui/ExportPreview";
+import { RulesSettings } from "@/components/ui/RulesSettings";
 import { cn } from "@/lib/utils";
 
 type FilterType = "all" | "ai-suggestion" | "duplicate" | "critical";
@@ -13,100 +15,191 @@ type FilterType = "all" | "ai-suggestion" | "duplicate" | "critical";
 export function Header() {
   const { rows, jumpToNextError, filter, setFilter, fileName, processImportResult, isImporting } = useGridStore();
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isRulesSettingsOpen, setIsRulesSettingsOpen] = useState(false);
 
-  const counts = rows.reduce(
-    (acc, row) => {
+  const stats = useMemo(() => {
+    let suggestions = 0;
+    let duplicates = 0;
+    let critical = 0;
+    let cleanRows = 0;
+
+    rows.forEach((row) => {
+      let rowHasIssue = false;
       Object.values(row.status).forEach((status) => {
-        if (status.state === "ai-suggestion") acc.suggestions++;
-        else if (status.state === "duplicate") acc.duplicates++;
-        else if (status.state === "critical") acc.critical++;
+        if (status?.state === "ai-suggestion") {
+          suggestions++;
+          rowHasIssue = true;
+        } else if (status?.state === "duplicate") {
+          duplicates++;
+          rowHasIssue = true;
+        } else if (status?.state === "critical") {
+          critical++;
+          rowHasIssue = true;
+        }
       });
-      return acc;
-    },
-    { suggestions: 0, duplicates: 0, critical: 0 }
-  );
+      if (!rowHasIssue) cleanRows++;
+    });
 
-  const totalIssues = counts.suggestions + counts.duplicates + counts.critical;
+    const totalIssues = suggestions + duplicates + critical;
+    const percent = rows.length > 0 ? Math.round((cleanRows / rows.length) * 100) : 100;
 
-  const filterButtons: { id: FilterType; label: string; count: number; color: string; activeColor: string; tooltip: string }[] = [
-    { id: "all", label: "All", count: rows.length, color: "text-gray-600", activeColor: "bg-gray-100 text-gray-900", tooltip: "Show all rows" },
-    { id: "ai-suggestion", label: "Fixes", count: counts.suggestions, color: "text-amber-700", activeColor: "bg-amber-100 text-amber-900", tooltip: "Auto-corrections ready to apply" },
-    { id: "duplicate", label: "Duplicates", count: counts.duplicates, color: "text-orange-700", activeColor: "bg-orange-100 text-orange-900", tooltip: "Potential duplicate payments" },
-    { id: "critical", label: "Critical", count: counts.critical, color: "text-red-700", activeColor: "bg-red-100 text-red-900", tooltip: "Requires manual review" },
+    return { totalIssues, suggestions, duplicates, critical, percent, cleanRows };
+  }, [rows]);
+
+  const filterButtons: { id: FilterType; label: string; count: number; dotColor: string; activeColor: string }[] = [
+    { id: "all", label: "All", count: rows.length, dotColor: "", activeColor: "bg-gray-100 text-gray-900" },
+    { id: "ai-suggestion", label: "Fixes", count: stats.suggestions, dotColor: "bg-amber-400", activeColor: "bg-amber-50 text-amber-900" },
+    { id: "duplicate", label: "Dups", count: stats.duplicates, dotColor: "bg-orange-400", activeColor: "bg-orange-50 text-orange-900" },
+    { id: "critical", label: "Critical", count: stats.critical, dotColor: "bg-red-400", activeColor: "bg-red-50 text-red-900" },
   ];
 
   const handleImportComplete = async (result: ImportResult) => {
-    console.log("[HEADER] Import complete, processing result");
     await processImportResult(result);
   };
 
+  const isComplete = stats.totalIssues === 0;
+
   return (
     <>
-      <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5 text-gray-700" />
-            <h1 className="text-base font-semibold text-gray-900">RytFlow</h1>
+      <header className="sticky top-0 z-40 bg-white">
+        <div className="flex items-center gap-3 px-4 h-10">
+          {/* Logo */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+            <span className="text-sm font-bold text-gray-900 font-mono">
+              dwmtcd<span className="text-emerald-600">.</span>
+            </span>
           </div>
 
-          <div className="h-6 w-px bg-gray-200" />
+          {/* File info */}
+          <span className="text-xs text-gray-400 font-mono truncate max-w-[100px] shrink-0" title={fileName}>
+            {fileName}
+          </span>
+          <span className="text-[10px] text-gray-400 font-mono tabular-nums bg-gray-100 px-1 py-0.5 shrink-0">
+            {rows.length}
+          </span>
 
-          <span className="text-sm text-gray-500">{fileName}</span>
-          <Badge variant="secondary" className="text-xs font-normal">
-            {rows.length} rows
-          </Badge>
-        </div>
+          {/* Separator */}
+          <div className="h-4 w-px bg-gray-200 shrink-0" />
 
-        <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1">
-          {filterButtons.map((btn) => (
-            btn.count > 0 || btn.id === "all" ? (
-              <button
-                key={btn.id}
-                onClick={() => setFilter(btn.id)}
-                title={btn.tooltip}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors",
-                  filter === btn.id ? btn.activeColor : `${btn.color} hover:bg-gray-100`
-                )}
-              >
-                <span className="font-medium">{btn.label}</span>
-                <span className={cn(
-                  "text-xs px-1.5 py-0.5 rounded tabular-nums",
-                  filter === btn.id ? "bg-white/50" : "bg-gray-200/50"
-                )}>
-                  {btn.count}
-                </span>
-              </button>
-            ) : null
-          ))}
-        </div>
+          {/* Filter pills */}
+          <div className="flex items-center gap-0.5 shrink-0">
+            {filterButtons.map((btn) => (
+              btn.count > 0 || btn.id === "all" ? (
+                <button
+                  key={btn.id}
+                  onClick={() => setFilter(btn.id)}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-0.5 text-xs font-medium transition-colors",
+                    filter === btn.id ? btn.activeColor : "text-gray-500 hover:bg-gray-50"
+                  )}
+                >
+                  {btn.dotColor && <div className={cn("w-1.5 h-1.5", btn.dotColor)} />}
+                  <span>{btn.label}</span>
+                  <span className="text-[10px] font-mono tabular-nums opacity-60">{btn.count}</span>
+                </button>
+              ) : null
+            ))}
+          </div>
 
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setIsImportOpen(true)}
-            disabled={isImporting}
-          >
-            {isImporting ? (
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4 mr-1.5" />
+          {/* Spacer */}
+          <div className="flex-1 min-w-4" />
+
+          {/* Progress indicator */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Zap className={cn(
+              "h-3.5 w-3.5",
+              isComplete ? "text-emerald-500" : "text-cyan-500"
+            )} />
+            <span className={cn(
+              "text-sm font-bold font-mono tabular-nums",
+              isComplete ? "text-emerald-600" : "text-gray-900"
+            )}>
+              {stats.percent}%
+            </span>
+            {!isComplete && (
+              <span className="text-[10px] text-gray-400">
+                ({stats.totalIssues})
+              </span>
             )}
-            {isImporting ? "Importing..." : "Upload"}
-          </Button>
+          </div>
 
-          {totalIssues > 0 ? (
-            <Button size="sm" onClick={() => jumpToNextError()}>
-              Next Issue
-              <ChevronRight className="h-4 w-4 ml-1" />
+          {/* Separator */}
+          <div className="h-4 w-px bg-gray-200 shrink-0" />
+
+          {/* Actions */}
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => setIsRulesSettingsOpen(true)}
+              className="flex items-center gap-1 px-1.5 py-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+              title="Rules Settings"
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+            </button>
+
+            <button
+              onClick={() => setIsCommandPaletteOpen(true)}
+              className="flex items-center gap-1 px-1.5 py-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+              title="Open command palette (⌘K)"
+            >
+              <Command className="h-3.5 w-3.5" />
+              <kbd className="text-[9px] px-1 py-0.5 bg-gray-100 font-mono">⌘K</kbd>
+            </button>
+
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 px-2 text-xs"
+              onClick={() => setIsImportOpen(true)}
+              disabled={isImporting}
+              title="Import CSV/Excel file"
+            >
+              {isImporting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+              ) : (
+                <Upload className="h-3.5 w-3.5 mr-1" />
+              )}
+              Import
             </Button>
-          ) : (
-            <Button size="sm" className="bg-green-600 hover:bg-green-700">
-              <Check className="h-3.5 w-3.5 mr-1.5" />
-              Submit
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={() => setIsExportOpen(true)}
+              title="Export cleaned data"
+            >
+              <Download className="h-3.5 w-3.5 mr-1" />
+              Export
             </Button>
-          )}
+
+            {stats.totalIssues > 0 ? (
+              <Button size="sm" className="h-6 px-2 text-xs" onClick={() => jumpToNextError()}>
+                Next
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            ) : (
+              <Button size="sm" className="h-6 px-2 text-xs bg-emerald-600 hover:bg-emerald-700">
+                <Check className="h-3 w-3 mr-1" />
+                Submit
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Thin progress bar as bottom border */}
+        <div className="h-[2px] bg-gray-100">
+          <div
+            className={cn(
+              "h-full transition-all duration-500 ease-out",
+              isComplete
+                ? "bg-emerald-500"
+                : "bg-gradient-to-r from-cyan-500 via-emerald-500 to-cyan-400"
+            )}
+            style={{ width: `${stats.percent}%` }}
+          />
         </div>
       </header>
 
@@ -114,6 +207,23 @@ export function Header() {
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
         onImportComplete={handleImportComplete}
+      />
+
+      <ExportPreview
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+      />
+
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onOpenChange={setIsCommandPaletteOpen}
+        onOpenImport={() => setIsImportOpen(true)}
+        onOpenExport={() => setIsExportOpen(true)}
+      />
+
+      <RulesSettings
+        isOpen={isRulesSettingsOpen}
+        onClose={() => setIsRulesSettingsOpen(false)}
       />
     </>
   );

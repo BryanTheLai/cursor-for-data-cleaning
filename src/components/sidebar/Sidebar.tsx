@@ -6,7 +6,6 @@ import {
   ChevronRight,
   MessageCircle,
   History,
-  FileText,
   Palette,
   AlertCircle,
 } from "lucide-react";
@@ -41,7 +40,6 @@ export function Sidebar() {
         isCollapsed ? "w-12" : "w-80"
       )}
     >
-      {/* Collapse toggle */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="flex items-center justify-center h-10 border-b border-gray-200 hover:bg-gray-50 transition-colors"
@@ -53,7 +51,6 @@ export function Sidebar() {
         )}
       </button>
 
-      {/* Tabs */}
       <div
         className={cn(
           "flex border-b border-gray-200",
@@ -68,9 +65,9 @@ export function Sidebar() {
               if (isCollapsed) setIsCollapsed(false);
             }}
             className={cn(
-              "flex items-center justify-center gap-2 px-3 py-2 text-sm transition-colors",
+              "flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium transition-colors",
               activeTab === tab.id
-                ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50/50"
+                ? "text-emerald-700 border-b-2 border-emerald-600 bg-emerald-50/50"
                 : "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
               isCollapsed && "py-3"
             )}
@@ -82,7 +79,6 @@ export function Sidebar() {
         ))}
       </div>
 
-      {/* Content */}
       {!isCollapsed && (
         <div className="flex-1 overflow-auto">
           {activeTab === "issues" && <IssuesPanel />}

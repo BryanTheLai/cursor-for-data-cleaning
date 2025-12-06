@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { parseFile, getSampleRows, type ParsedFile } from "@/lib/fileParser";
 import type { ColumnMappingResult } from "@/lib/groq";
+import { PAYROLL_RULES, getTargetSchemaFromRules } from "@/lib/rulesEngine";
 
 type WizardStep = "upload" | "mapping" | "review";
 
@@ -17,14 +18,13 @@ interface TargetColumn {
   rules?: string;
 }
 
-const DEFAULT_TARGET_SCHEMA: TargetColumn[] = [
-  { key: "name", label: "Payee Name", type: "string", required: true, rules: "Capitalize properly. Remove titles like Mr/Mrs." },
-  { key: "amount", label: "Amount (RM)", type: "number", required: true, rules: "Remove currency symbols. Format as decimal with 2 places." },
-  { key: "accountNumber", label: "Account Number", type: "string", required: true, rules: "Must be 10-16 digits. Remove dashes and spaces." },
-  { key: "bank", label: "Bank Code", type: "string", required: false, rules: "Convert to 3-letter code (MBB, PBB, CIMB, etc)." },
-  { key: "date", label: "Date", type: "date", required: false, rules: "Convert to YYYY-MM-DD format." },
-  { key: "phone", label: "Phone Number", type: "phone", required: false, rules: "Malaysian format: +60XXXXXXXXX." },
-];
+const DEFAULT_TARGET_SCHEMA: TargetColumn[] = getTargetSchemaFromRules(PAYROLL_RULES).map(f => ({
+  key: f.key,
+  label: f.label,
+  type: f.type,
+  required: f.required,
+  rules: f.rules || undefined,
+}));
 
 interface ImportWizardProps {
   isOpen: boolean;
@@ -58,7 +58,7 @@ function SourcePill({
     <div
       onClick={onClick}
       className={cn(
-        "flex flex-col px-3 py-2 rounded-lg border transition-all w-[200px] shrink-0",
+        "flex flex-col px-3 py-2  border transition-all w-[200px] shrink-0",
         isSelected 
           ? "border-blue-400 bg-blue-50 shadow-sm" 
           : "border-gray-200 bg-white hover:border-gray-300",
@@ -69,7 +69,7 @@ function SourcePill({
         <span className="text-sm font-medium text-gray-800">{name}</span>
         {confidence !== undefined && confidence > 0 && (
           <span className={cn(
-            "text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0",
+            "text-[10px] px-1.5 py-0.5  font-medium shrink-0",
             confidence >= 0.8 ? "bg-emerald-100 text-emerald-700" :
             confidence >= 0.6 ? "bg-amber-100 text-amber-700" :
             "bg-gray-100 text-gray-600"
@@ -102,7 +102,7 @@ function TargetPill({
     <div
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1 px-3 py-2.5 rounded-lg border transition-all flex-1",
+        "flex items-center gap-1 px-3 py-2.5  border transition-all flex-1",
         isEmpty 
           ? "border-dashed border-gray-300 bg-gray-50" 
           : isSelected 
@@ -142,7 +142,7 @@ function MappingSection({
   if (count === 0) return null;
   
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
+    <div className="border border-gray-200  overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
@@ -150,7 +150,7 @@ function MappingSection({
         <div className="flex items-center gap-2">
           {icon}
           <span className="text-sm font-medium text-gray-700">{title}</span>
-          <span className="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">{count}</span>
+          <span className="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 ">{count}</span>
         </div>
         {isOpen ? (
           <ChevronUp className="h-4 w-4 text-gray-400" />
@@ -190,74 +190,82 @@ function MappingRow({
   const targetCol = targetSchema.find(t => t.key === targetKey);
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-4">
       <SourcePill 
         name={sourceCol} 
         sampleValue={sampleValue}
         confidence={confidence}
       />
       
-      <ArrowRight className="h-4 w-4 text-gray-300 shrink-0" />
+      <ArrowRight className="h-4 w-4 text-gray-400 shrink-0" />
       
-      <div className="relative flex-1">
-        {isSelecting ? (
-          <div className="absolute z-10 top-0 left-0 w-full bg-white border border-gray-200 rounded-lg shadow-lg py-1">
-            <button
-              onClick={() => {
-                onMappingChange(null);
-                setIsSelecting(false);
-              }}
-              className="w-full px-3 py-2 text-left text-sm text-gray-400 hover:bg-gray-50"
-            >
-              Not mapped
-            </button>
-            {targetSchema.map((col) => {
-              const isUsed = mappedTargets.has(col.key) && targetKey !== col.key;
-              return (
-                <button
-                  key={col.key}
-                  onClick={() => {
-                    if (!isUsed) {
-                      onMappingChange(col.key);
-                      setIsSelecting(false);
-                    }
-                  }}
-                  disabled={isUsed}
-                  className={cn(
-                    "w-full px-3 py-2 text-left text-sm flex items-center justify-between",
-                    isUsed 
-                      ? "text-gray-300 cursor-not-allowed" 
-                      : "text-gray-700 hover:bg-gray-50"
-                  )}
-                >
-                  <span>{col.label} {col.required && <span className="text-red-500">*</span>}</span>
-                  {isUsed && <span className="text-xs text-gray-300">Used</span>}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
+      <div className="relative flex-1 min-w-0">
+        {isSelecting && (
+          <>
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={() => setIsSelecting(false)}
+            />
+            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200  shadow-xl py-1 max-h-[200px] overflow-auto">
+              <button
+                onClick={() => {
+                  onMappingChange(null);
+                  setIsSelecting(false);
+                }}
+                className="w-full px-3 py-2 text-left text-sm text-gray-400 hover:bg-gray-50"
+              >
+                Not mapped
+              </button>
+              {targetSchema.map((col) => {
+                const isUsed = mappedTargets.has(col.key) && targetKey !== col.key;
+                return (
+                  <button
+                    key={col.key}
+                    onClick={() => {
+                      if (!isUsed) {
+                        onMappingChange(col.key);
+                        setIsSelecting(false);
+                      }
+                    }}
+                    disabled={isUsed}
+                    className={cn(
+                      "w-full px-3 py-2 text-left text-sm flex items-center justify-between",
+                      isUsed 
+                        ? "text-gray-300 cursor-not-allowed" 
+                        : "text-gray-700 hover:bg-gray-50"
+                    )}
+                  >
+                    <span>{col.label} {col.required && <span className="text-red-500">*</span>}</span>
+                    {isUsed && <span className="text-xs text-gray-300">Used</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
         
-        <div onClick={() => setIsSelecting(!isSelecting)}>
+        <div onClick={() => setIsSelecting(!isSelecting)} className="cursor-pointer">
           <TargetPill
             name={targetCol?.label || ""}
             required={targetCol?.required}
             isEmpty={!targetKey}
             isSelected={isSelecting}
-            onClick={() => {}}
           />
         </div>
       </div>
 
-      {!targetKey && (
-        <button
-          onClick={onIgnore}
-          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
-          title="Ignore this column"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      )}
+      <button
+        onClick={onIgnore}
+        className={cn(
+          "p-1.5  transition-colors shrink-0",
+          targetKey 
+            ? "text-transparent pointer-events-none" 
+            : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+        )}
+        title="Ignore this column"
+      >
+        <X className="h-4 w-4" />
+      </button>
     </div>
   );
 }
@@ -463,13 +471,13 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-3xl bg-white rounded-xl shadow-2xl max-h-[90vh] flex flex-col">
+      <div className="w-full max-w-3xl bg-white  shadow-2xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <FileSpreadsheet className="h-5 w-5 text-gray-600" />
             <h2 className="text-lg font-semibold text-gray-900">Import Data</h2>
           </div>
-          <button onClick={handleClose} className="p-1 hover:bg-gray-100 rounded">
+          <button onClick={handleClose} className="p-1 hover:bg-gray-100 ">
             <X className="h-5 w-5 text-gray-400" />
           </button>
         </div>
@@ -478,7 +486,7 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
           {["upload", "mapping", "review"].map((s, i) => (
             <div key={s} className="flex items-center">
               <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+                "w-8 h-8  flex items-center justify-center text-sm font-medium",
                 step === s ? "bg-blue-600 text-white" :
                 ["mapping", "review"].indexOf(step) > i ? "bg-green-600 text-white" :
                 "bg-gray-200 text-gray-500"
@@ -503,7 +511,7 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               className={cn(
-                "border-2 border-dashed rounded-xl p-12 text-center transition-colors",
+                "border-2 border-dashed  p-12 text-center transition-colors",
                 isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400",
                 isLoading && "opacity-50 pointer-events-none"
               )}
@@ -529,7 +537,7 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
                       onChange={handleFileSelect}
                       className="hidden"
                     />
-                    <span className="px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors">
+                    <span className="px-4 py-2 bg-blue-600 text-white  cursor-pointer hover:bg-blue-700 transition-colors">
                       Browse Files
                     </span>
                   </label>
@@ -545,7 +553,7 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
                   <h3 className="font-medium text-gray-900">{parsedFile.fileName}</h3>
                   <p className="text-sm text-gray-500">{parsedFile.rowCount} rows detected</p>
                 </div>
-                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 ">
                   AI-mapped with Groq
                 </span>
               </div>
@@ -573,7 +581,7 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
               <MappingSection 
                 title="Unmapped Fields" 
                 count={unmappedColumns.length}
-                icon={<div className="w-4 h-4 border-2 border-dashed border-gray-400 rounded" />}
+                icon={<div className="w-4 h-4 border-2 border-dashed border-gray-400 " />}
               >
                 {unmappedColumns.map((sourceCol) => (
                   <MappingRow
@@ -596,25 +604,28 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
                   count={missingTargets.filter(t => t.required).length}
                   icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {missingTargets.map((target) => (
-                      <div key={target.key} className="flex items-center gap-3">
-                        <div className="flex items-center gap-1 px-3 py-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 min-w-[140px]">
+                      <div key={target.key} className="flex items-center gap-4">
+                        <div className="flex items-center px-3 py-2.5  border border-dashed border-gray-300 bg-gray-50 w-[200px] shrink-0">
                           <span className="text-sm text-gray-400 italic">Empty</span>
                         </div>
-                        <ArrowRight className="h-4 w-4 text-gray-300 shrink-0" />
-                        <TargetPill
-                          name={target.label}
-                          required={target.required}
-                        />
-                        {target.required && (
-                          <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
-                            Required
-                          </span>
-                        )}
+                        <ArrowRight className="h-4 w-4 text-gray-400 shrink-0" />
+                        <div className="flex items-center gap-2 flex-1">
+                          <TargetPill
+                            name={target.label}
+                            required={target.required}
+                          />
+                          {target.required && (
+                            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1  shrink-0">
+                              Required
+                            </span>
+                          )}
+                        </div>
+                        <div className="w-[28px]" />
                       </div>
                     ))}
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
                       Required fields will be imported as empty and marked CRITICAL. You can request this data via WhatsApp.
                     </p>
                   </div>
@@ -630,7 +641,7 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
                 >
                   <div className="flex flex-wrap gap-2">
                     {Array.from(ignoredColumns).map((col) => (
-                      <div key={col} className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm text-gray-500">
+                      <div key={col} className="flex items-center gap-1 px-2 py-1 bg-gray-100  text-sm text-gray-500">
                         <span className="line-through">{col}</span>
                         <button
                           onClick={() => {
@@ -654,7 +665,7 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
 
           {step === "review" && parsedFile && (
             <div className="space-y-6">
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="p-4 bg-blue-50 border border-blue-200 ">
                 <h3 className="font-medium text-blue-900 mb-2">Ready to Import</h3>
                 <ul className="text-sm text-blue-800 space-y-1">
                   <li>• <strong>{parsedFile.rowCount}</strong> rows will be imported</li>
@@ -668,7 +679,7 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
                 </ul>
               </div>
 
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="border border-gray-200  overflow-hidden">
                 <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
                   <span className="text-sm font-medium text-gray-700">Preview (first 5 rows)</span>
                 </div>
@@ -721,13 +732,13 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
           )}
 
           {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <div className="mt-4 p-3 bg-red-50 border border-red-200  text-sm text-red-700">
               {error}
             </div>
           )}
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50 ">
           <div>
             {step !== "upload" && (
               <Button variant="ghost" onClick={handleBack}>

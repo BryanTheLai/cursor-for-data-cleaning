@@ -10,7 +10,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "DM Sans", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -48,11 +49,21 @@ const config: Config = {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "0",
+        md: "0",
+        sm: "0",
+        none: "0",
+        DEFAULT: "0",
       },
       keyframes: {
+        "warp-loading": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(200%)" },
+        },
+        "shimmer": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(200%)" },
+        },
         "purple-pulse": {
           "0%": { backgroundColor: "#F3E8FF" },
           "50%": { backgroundColor: "#D8B4FE" },
@@ -104,6 +115,8 @@ const config: Config = {
         },
       },
       animation: {
+        "warp-loading": "warp-loading 1s ease-in-out infinite",
+        "shimmer": "shimmer 2s ease-in-out infinite",
         "purple-pulse": "purple-pulse 2s ease-out",
         "green-flash": "green-flash 0.3s ease-out",
         "red-to-green": "red-to-green 1.2s ease-out forwards",

@@ -59,6 +59,27 @@ export function DataGrid() {
     { enableOnFormTags: false }
   );
 
+  // Shift+Tab to fix all in current column
+  useHotkeys(
+    "shift+tab",
+    (e) => {
+      e.preventDefault();
+      if (activeCell) {
+        const columnKey = activeCell.columnKey;
+        const fixCount = rows.filter(
+          (r) => r.status[columnKey]?.state === "ai-suggestion"
+        ).length;
+        
+        if (fixCount > 0) {
+          applyColumnFix(columnKey);
+          addToast(`Fixed ${fixCount} cells in ${columns.find(c => c.key === columnKey)?.header || columnKey}`, "success");
+          jumpToNextError();
+        }
+      }
+    },
+    { enableOnFormTags: false }
+  );
+
   // Escape to reject suggestion or cancel editing
   useHotkeys(
     "escape",
@@ -246,17 +267,17 @@ export function DataGrid() {
 
   return (
     <div className="relative" ref={gridRef}>
-      <div className="overflow-auto overscroll-x-contain border border-gray-200 rounded-lg bg-white shadow-sm pr-2">
+      <div className="overflow-auto overscroll-x-contain border border-gray-200 bg-white shadow-sm max-h-[calc(100vh-8rem)] scrollbar-stable">
         <table className="w-full border-separate border-spacing-0 text-sm">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="w-10 px-2 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200">
+          <thead className="sticky top-0 z-10">
+            <tr className="bg-gray-50/95 backdrop-blur-sm border-b border-gray-200">
+              <th className="w-10 px-2 py-2.5 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200 bg-gray-50/95">
                 #
               </th>
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200 last:border-r-0"
+                  className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200 last:border-r-0 bg-gray-50/95"
                   style={{ width: column.width, minWidth: column.width }}
                 >
                   {column.header}
@@ -314,7 +335,7 @@ export function DataGrid() {
       </div>
 
       {/* AI Suggestion Popover */}
-      {showPopover && activeCellRef.current && activeCell && (
+      {showPopover && activeCellRef.current && activeCell && activeCellStatus && (
         <AISuggestionPopover
           key={`${activeCell.rowId}-${activeCell.columnKey}`}
           anchorEl={activeCellRef.current}

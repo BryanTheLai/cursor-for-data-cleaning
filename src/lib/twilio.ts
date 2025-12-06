@@ -18,6 +18,53 @@ function getTwilioClient(): twilio.Twilio {
   return twilioClient;
 }
 
+const COUNTRY_CODES: Record<string, string> = {
+  MY: '+60',
+  SG: '+65',
+  ID: '+62',
+  TH: '+66',
+  PH: '+63',
+  VN: '+84',
+  US: '+1',
+  UK: '+44',
+  AU: '+61',
+  IN: '+91',
+  CN: '+86',
+  JP: '+81',
+  KR: '+82',
+};
+
+export function normalizePhoneNumber(phone: string, defaultCountry: string = 'MY'): string | null {
+  if (!phone) return null;
+  
+  let cleaned = phone.replace(/[\s\-\(\)\.]/g, '');
+  
+  if (cleaned.startsWith('whatsapp:')) {
+    cleaned = cleaned.replace('whatsapp:', '');
+  }
+  
+  if (cleaned.startsWith('+')) {
+    return cleaned;
+  }
+  
+  if (cleaned.startsWith('00')) {
+    return '+' + cleaned.slice(2);
+  }
+  
+  if (cleaned.startsWith('0')) {
+    const countryCode = COUNTRY_CODES[defaultCountry] || '+60';
+    return countryCode + cleaned.slice(1);
+  }
+  
+  if (/^\d{9,15}$/.test(cleaned)) {
+    const countryCode = COUNTRY_CODES[defaultCountry] || '+60';
+    return countryCode + cleaned;
+  }
+  
+  log.whatsapp.warn('Could not normalize phone number', { original: phone, cleaned });
+  return null;
+}
+
 export interface WhatsAppMessageResult {
   success: boolean;
   messageSid?: string;

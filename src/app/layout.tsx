@@ -1,16 +1,23 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { JetBrains_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
 
-const inter = Inter({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-mono",
+  weight: ["400", "500", "600", "700"],
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "RytFlow - Cursor for Financial Data Cleaning",
-  description: "The autonomous financial firewall for Ryt Bank",
+  title: "dwmtcd. — don't waste my time cleaning data",
+  description: "AI-powered data cleaning. Fix messy spreadsheets in seconds, not hours.",
 };
 
 export default function RootLayout({
@@ -20,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${dmSans.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         <ToastProvider>
           {children}
         </ToastProvider>

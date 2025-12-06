@@ -51,7 +51,7 @@ export function LegendPanel() {
         {legendItems.map((item) => (
           <div key={item.state} className="flex items-start gap-3">
             <div
-              className={cn("w-8 h-6 rounded shrink-0", item.bgClass)}
+              className={cn("w-8 h-6 shrink-0", item.bgClass)}
             />
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-900">{item.label}</p>
@@ -68,19 +68,25 @@ export function LegendPanel() {
         <div className="space-y-2 text-sm">
           <div className="flex items-center justify-between">
             <span className="text-gray-600">Accept suggestion</span>
-            <kbd className="px-2 py-1 text-xs bg-gray-100 border border-gray-200 rounded">
+            <kbd className="px-2 py-1 text-xs bg-gray-100 border border-gray-200">
               Tab
             </kbd>
           </div>
           <div className="flex items-center justify-between">
+            <span className="text-gray-600">Fix all in column</span>
+            <kbd className="px-2 py-1 text-xs bg-gray-100 border border-gray-200">
+              ⇧ Tab
+            </kbd>
+          </div>
+          <div className="flex items-center justify-between">
             <span className="text-gray-600">Reject / Close</span>
-            <kbd className="px-2 py-1 text-xs bg-gray-100 border border-gray-200 rounded">
+            <kbd className="px-2 py-1 text-xs bg-gray-100 border border-gray-200">
               Esc
             </kbd>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-gray-600">Navigate</span>
-            <kbd className="px-2 py-1 text-xs bg-gray-100 border border-gray-200 rounded">
+            <kbd className="px-2 py-1 text-xs bg-gray-100 border border-gray-200">
               Arrow Keys
             </kbd>
           </div>
