@@ -67,7 +67,7 @@ export function DataGrid() {
     resolveDuplicate,
   } = useGridStore(useShallow(selector));
 
-  const filteredRows = useMemo<RowData[]>(() => getFilteredRows(), [rows, filter, getFilteredRows]);
+  const filteredRows = useMemo<RowData[]>(() => getFilteredRows(), [getFilteredRows]);
 
   const orderedRows = useMemo<RowData[]>(() => {
     const nonSkipped: RowData[] = [];

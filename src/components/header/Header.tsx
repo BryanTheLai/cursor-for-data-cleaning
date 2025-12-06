@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Image from "next/image";
 import { Upload, Check, Loader2, Download, Sparkles, Command, Zap, Settings2, MessageCircle, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGridStore } from "@/store/useGridStore";
@@ -80,7 +81,7 @@ export function Header() {
         <div className="flex items-center gap-3 px-4 h-10">
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0">
-            <img src="/ryt logo.png" alt="Ryt Flow" className="h-6 w-auto" />
+            <Image src="/ryt logo.png" alt="Ryt Flow" width={24} height={24} className="h-6 w-auto" />
             <div className="flex flex-col leading-tight">
               <span className="text-sm font-bold text-[#0000e6] font-mono">
                 Ryt Flow

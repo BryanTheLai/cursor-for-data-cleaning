@@ -84,7 +84,7 @@ export function ROICalculator() {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white">ROI Calculator</h3>
-            <p className="text-sm text-gray-400">Man-hours × rate, plus avoided tickets and duplicates</p>
+            <p className="text-sm text-white/80">Man-hours × rate, plus avoided tickets and duplicates</p>
           </div>
         </div>
         <button
@@ -97,10 +97,10 @@ export function ROICalculator() {
 
       <div className="px-6 py-4 border-b border-white/10 bg-[#0000e6]/60 text-xs text-gray-300 grid md:grid-cols-3 gap-3">
         <div className="font-semibold text-white">Simple formula</div>
-        <div className="text-white/70">
+        <div className="text-white/80">
           Monthly savings = (hours × rate × time cut) + (tickets × cost × deflection) + (dup loss × avoidance)
         </div>
-        <div className="text-[#00ddd7] font-mono text-[11px]">
+        <div className="text-white/80 font-mono text-[11px]">
           {equation}
         </div>
       </div>
@@ -229,14 +229,14 @@ export function ROICalculator() {
           </p>
         </div>
 
-        <div className="bg-[#0000cc]/40 border border-white/10 rounded-lg p-4 text-sm text-gray-300 space-y-2">
+        <div className="bg-[#0000cc]/40 border border-white/10 rounded-lg p-4 text-sm text-white/80 space-y-2">
           <div className="text-[#00ddd7] font-semibold">Assumptions</div>
-          <div className="grid md:grid-cols-3 gap-3 text-xs text-gray-400">
+          <div className="grid md:grid-cols-3 gap-3 text-xs text-white/80">
             <span>Time cut by {inputs.timeReductionPct}%</span>
             <span>{inputs.ticketReductionPct}% of {inputs.ticketsPerMonth} tickets deflected</span>
             <span>{inputs.duplicateReductionPct}% of RM {inputs.duplicateLossPerMonth.toLocaleString()} duplicate losses avoided</span>
           </div>
-          <div className="text-xs text-gray-400">{equation}</div>
+          <div className="text-xs text-white/80">{equation}</div>
         </div>
       </div>
     </div>
@@ -263,7 +263,7 @@ function InputSlider({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-xs">
-        <span className="text-gray-400 flex items-center gap-1">
+        <span className="text-white/80 flex items-center gap-1">
           {icon}
           {label}
         </span>
@@ -312,10 +312,10 @@ function MetricCard({
     <div className={`${bgColors[color]} rounded-lg p-4`}>
       <div className="flex items-center gap-2 mb-2">
         {icon}
-        <span className="text-xs text-gray-400">{label}</span>
+        <span className="text-xs text-white/80">{label}</span>
       </div>
       <p className="text-xl font-bold text-white tabular-nums">{value}</p>
-      <p className="text-xs text-gray-500">{subtext}</p>
+      <p className="text-xs text-white/80">{subtext}</p>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Play, Zap, Clock, DollarSign, AlertTriangle } from "lucide-react";
 import { ROICalculator } from "@/components/ui/ROICalculator";
 
@@ -433,7 +434,7 @@ function RytFlowPreview() {
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-xl">
       <div className="bg-[#0000e6] text-white px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <img src="/ryt logo.png" alt="Ryt Flow" className="h-5 w-auto" />
+          <Image src="/ryt logo.png" alt="Ryt Flow" width={20} height={20} className="h-5 w-auto" />
           <span className="font-semibold">Ryt Flow</span>
         </div>
         <div className="text-xs bg-white/20 px-2 py-1 rounded">
@@ -535,7 +536,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0000e6]/95 backdrop-blur-sm border-b border-white/20">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/ryt logo.png" alt="Ryt Flow" className="h-8 w-auto" />
+            <Image src="/ryt logo.png" alt="Ryt Flow" width={32} height={32} className="h-8 w-auto" />
             <span className="font-bold text-xl tracking-tight">Ryt Flow</span>
           </div>
           <Link 
@@ -563,7 +564,7 @@ export default function LandingPage() {
                 </span>
               </h1>
 
-              <p className="text-lg text-gray-400">
+              <p className="text-lg text-white/80">
                 Sarah in Payment Ops fights 47 Excel files every Monday, patches brittle Python scripts, and chases 847 missing phone numbers over email before payroll can run.
               </p>
 
@@ -631,7 +632,7 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-white">Python Script Hell</h3>
-                      <p className="text-xs text-gray-500">2000+ lines of code that breaks constantly</p>
+                      <p className="text-xs text-white/80">2000+ lines of code that breaks constantly</p>
                     </div>
                   </div>
                   <div className="rounded-xl overflow-hidden border border-red-500/30 shadow-lg shadow-red-500/10">
@@ -646,7 +647,7 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-white">Excel Error Nightmare</h3>
-                      <p className="text-xs text-gray-500">Click OK. Click OK. Click OK. Forever.</p>
+                      <p className="text-xs text-white/80">Click OK. Click OK. Click OK. Forever.</p>
                     </div>
                   </div>
                   <div className="rounded-xl overflow-hidden border border-red-500/30 shadow-lg shadow-red-500/10">
@@ -662,7 +663,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-white">The Email Chase</h3>
-                    <p className="text-xs text-gray-500">Waiting 3-5 business days for simple data</p>
+                    <p className="text-xs text-white/80">Waiting 3-5 business days for simple data</p>
                   </div>
                 </div>
                 <EmailChase />
@@ -671,7 +672,7 @@ export default function LandingPage() {
               <div className="text-center mt-16">
                 <div className="inline-block bg-red-500/10 border border-red-500/30 rounded-lg px-8 py-6">
                   <div className="text-4xl font-bold text-red-400 mb-2">3 Weeks</div>
-                  <div className="text-gray-400">Average time to process one batch of payments</div>
+                  <div className="text-white/80">Average time to process one batch of payments</div>
                 </div>
               </div>
             </>
@@ -709,7 +710,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Calculate Your Savings</h2>
-            <p className="text-gray-400">See exactly how much time and money RytFlow can save your team</p>
+            <p className="text-white/80">See exactly how much time and money RytFlow can save your team</p>
           </div>
           <ROICalculator />
         </div>
@@ -718,7 +719,7 @@ export default function LandingPage() {
       <section className="py-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Save 32 Hours Every Week?</h2>
-          <p className="text-gray-400 mb-8">
+          <p className="text-white/80 mb-8">
             Upload your messy CSV. Watch it get fixed in seconds.
           </p>
           <Link
@@ -731,9 +732,9 @@ export default function LandingPage() {
       </section>
 
       <footer className="py-8 px-6 border-t border-white/20">
-        <div className="max-w-7xl mx-auto flex items-center justify-between text-sm text-white/60">
+        <div className="max-w-7xl mx-auto flex items-center justify-between text-sm text-white/80">
           <div className="flex items-center gap-2">
-            <img src="/ryt logo.png" alt="Ryt Flow" className="h-6 w-auto" />
+            <Image src="/ryt logo.png" alt="Ryt Flow" width={24} height={24} className="h-6 w-auto" />
             <span>Ryt Flow</span>
           </div>
           <div>Tab to fix. WhatsApp to verify. Sleep soundly.</div>
