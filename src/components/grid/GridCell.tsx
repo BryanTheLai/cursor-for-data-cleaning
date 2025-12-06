@@ -3,7 +3,6 @@
 import { forwardRef, useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import type { CellStatus, CellState } from "@/types";
-import { Badge } from "@/components/ui/badge";
 
 interface GridCellProps {
   rowId: string;
@@ -19,6 +18,23 @@ interface GridCellProps {
   onEditComplete?: (value: string) => void;
 }
 
+function ConfidenceBadge({ confidence }: { confidence: number }) {
+  const percent = Math.round(confidence * 100);
+  const isHigh = confidence >= 0.9;
+  const isMedium = confidence >= 0.7 && confidence < 0.9;
+  
+  return (
+    <span className={cn(
+      "ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums",
+      isHigh && "bg-emerald-100 text-emerald-700",
+      isMedium && "bg-amber-100 text-amber-700",
+      !isHigh && !isMedium && "bg-orange-100 text-orange-700"
+    )}>
+      {percent}%
+    </span>
+  );
+}
+
 export const GridCell = forwardRef<HTMLTableCellElement, GridCellProps>(
   ({ value, status, isActive, isLocked, isRecentlyFixed, isEditing, onClick, onDoubleClick, onEditComplete }, ref) => {
     const [isAnimating, setIsAnimating] = useState(false);
@@ -26,10 +42,10 @@ export const GridCell = forwardRef<HTMLTableCellElement, GridCellProps>(
     const [prevState, setPrevState] = useState<CellState | undefined>(status?.state);
     const [transitionAnimation, setTransitionAnimation] = useState<string | null>(null);
     const [valueChanged, setValueChanged] = useState(false);
+    const [displayValue, setDisplayValue] = useState(value);
     const prevValueRef = useRef(value);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Focus input when entering edit mode
     useEffect(() => {
       if (isEditing && inputRef.current) {
         inputRef.current.focus();
@@ -38,7 +54,6 @@ export const GridCell = forwardRef<HTMLTableCellElement, GridCellProps>(
       }
     }, [isEditing, value]);
 
-    // Handle live update animation
     useEffect(() => {
       if (status?.state === "live-update") {
         setIsAnimating(true);
@@ -47,10 +62,8 @@ export const GridCell = forwardRef<HTMLTableCellElement, GridCellProps>(
       }
     }, [status?.state]);
 
-    // Track state transitions for animations
     useEffect(() => {
       if (prevState && status?.state && prevState !== status.state) {
-        // Determine which transition animation to use
         if (status.state === "validated" || status.state === "clean") {
           if (prevState === "critical") {
             setTransitionAnimation("animate-red-to-green");
@@ -62,7 +75,6 @@ export const GridCell = forwardRef<HTMLTableCellElement, GridCellProps>(
             setTransitionAnimation("animate-validated-pulse");
           }
           
-          // Clear animation after it completes
           const timer = setTimeout(() => setTransitionAnimation(null), 1500);
           return () => clearTimeout(timer);
         } else if (status.state === "skipped") {
@@ -74,13 +86,15 @@ export const GridCell = forwardRef<HTMLTableCellElement, GridCellProps>(
       setPrevState(status?.state);
     }, [status?.state, prevState]);
 
-    // Track value changes for slide animation
     useEffect(() => {
       if (prevValueRef.current !== value && value) {
         setValueChanged(true);
-        const timer = setTimeout(() => setValueChanged(false), 300);
+        setDisplayValue(value);
+        const timer = setTimeout(() => setValueChanged(false), 500);
         prevValueRef.current = value;
         return () => clearTimeout(timer);
+      } else {
+        setDisplayValue(value);
       }
     }, [value]);
 
@@ -104,32 +118,6 @@ export const GridCell = forwardRef<HTMLTableCellElement, GridCellProps>(
       }
     };
 
-    const getBorderClass = () => {
-      if (!status) return "";
-      // Low confidence gets yellow border
-      if (status.state === "ai-suggestion" && status.confidence && status.confidence < 0.7) {
-        return "border-2 border-yellow-400";
-      }
-      if (status.state === "validated") {
-        return "border-l-2 border-l-green-500";
-      }
-      return "";
-    };
-
-    const getConfidenceBadge = () => {
-      if (!status?.confidence || status.state !== "ai-suggestion") return null;
-      const percent = Math.round(status.confidence * 100);
-      const isLow = status.confidence < 0.7;
-      return (
-        <Badge
-          variant={isLow ? "warning" : "secondary"}
-          className="ml-1 text-[10px] px-1 py-0"
-        >
-          {percent}%
-        </Badge>
-      );
-    };
-
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter") {
         onEditComplete?.(editValue);
@@ -143,18 +131,21 @@ export const GridCell = forwardRef<HTMLTableCellElement, GridCellProps>(
       onEditComplete?.(editValue);
     };
 
+    const showConfidence = status?.confidence && status.state === "ai-suggestion" && !isEditing;
+    const isEmpty = !value && status?.state === "critical";
+    const isSkipped = status?.state === "skipped";
+
     return (
       <td
         ref={ref}
         onClick={onClick}
         onDoubleClick={onDoubleClick}
         className={cn(
-          "relative px-3 py-2 border-r border-gray-200 last:border-r-0 cursor-pointer",
-          "tabular-nums cell-transitioning",
+          "relative px-3 py-2.5 border-r border-gray-100 last:border-r-0 cursor-pointer min-h-[44px]",
+          "tabular-nums transition-all duration-300",
           getCellStateClass(),
-          getBorderClass(),
           isActive && "cell-selected",
-          isLocked && "cursor-not-allowed",
+          isLocked && "cursor-not-allowed opacity-50",
           isAnimating && "animate-purple-pulse",
           isRecentlyFixed && "animate-green-flash",
           transitionAnimation
@@ -168,29 +159,27 @@ export const GridCell = forwardRef<HTMLTableCellElement, GridCellProps>(
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
-            className="w-full bg-white outline-none border-none text-sm px-1 py-0.5 -mx-1 -my-0.5 ring-2 ring-blue-500"
+            className="w-full bg-white outline-none border-none text-sm font-medium px-1 py-0.5 -mx-1 -my-0.5 ring-2 ring-blue-500 rounded"
           />
         ) : (
           <div className="flex items-center justify-between gap-1">
             <span className={cn(
-              "truncate",
-              !value && status?.state === "critical" && "italic text-gray-400",
-              status?.state === "skipped" && "line-through",
+              "truncate text-sm",
+              isEmpty && "italic text-red-400 font-medium",
+              isSkipped && "line-through text-gray-400",
               valueChanged && "animate-slide-in-value"
             )}>
-              {value || (status?.state === "critical" ? "Missing" : status?.state === "skipped" ? "Skipped" : "")}
+              {displayValue || (isEmpty ? "Missing" : isSkipped ? "Skipped" : "")}
             </span>
-            {getConfidenceBadge()}
+            {showConfidence && <ConfidenceBadge confidence={status.confidence!} />}
           </div>
         )}
 
-        {/* Suggestion indicator when active */}
         {status?.state === "ai-suggestion" && status.suggestion && isActive && (
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 border border-white" />
+          <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-br from-amber-400 to-orange-400 rounded-full border-2 border-white shadow-sm" />
         )}
 
-        {/* Excel-style handle */}
-        {isActive && (
+        {isActive && !isEditing && (
           <div className="excel-handle" />
         )}
       </td>

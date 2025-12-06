@@ -112,7 +112,7 @@ export const MOCK_ROWS: RowData[] = [
       amount: "2300.00",
       bank: "",
       accountNumber: "555566667777",
-      phone: "+60112345678",
+      phone: "+60138509983",
       date: "2024-03-15",
     },
     status: {
@@ -123,7 +123,7 @@ export const MOCK_ROWS: RowData[] = [
       },
     },
     locked: false,
-    phoneNumber: "+60112345678",
+    phoneNumber: "+60138509983",
   },
   {
     id: "row-5",
@@ -273,22 +273,15 @@ export const MOCK_ROWS: RowData[] = [
     rowIndex: 10,
     data: {
       id: "TXN010",
-      name: "",
+      name: "Syarikat Jaya",
       amount: "750.00",
       bank: "AMB",
       accountNumber: "666655554444",
       phone: "+60176543210",
       date: "2024-03-15",
     },
-    status: {
-      name: {
-        state: "critical",
-        message: "Missing required field: Payee name",
-        source: "missing",
-      },
-    },
+    status: {},
     locked: false,
-    phoneNumber: "+60176543210",
   },
 ];
 
