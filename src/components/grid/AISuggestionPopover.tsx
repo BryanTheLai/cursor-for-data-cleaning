@@ -1,13 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
-import {
-  useFloating,
-  offset,
-  flip,
-  shift,
-  autoUpdate,
-} from "@floating-ui/react";
+import { useRef, useEffect, useLayoutEffect, useState } from "react";
 import { X, Check, AlertTriangle, ArrowRight, Clock, Loader2, CheckCircle, Copy, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CellStatus } from "@/types";
@@ -50,6 +43,7 @@ export function AISuggestionPopover({
   const [overrideReason, setOverrideReason] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [sendStatus, setSendStatus] = useState<"idle" | "success" | "error">("idle");
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const { sendWhatsAppRequest, rows, whatsappRequests, resolveDuplicate, overrideCritical, setActiveCell } = useGridStore();
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -61,26 +55,39 @@ export function AISuggestionPopover({
   );
   const alreadySent = !!existingRequest;
 
-  const { refs, floatingStyles, update } = useFloating({
-    elements: {
-      reference: anchorEl,
-    },
-    placement: "bottom-start",
-    strategy: "fixed",
-    middleware: [offset(4), flip({ fallbackPlacements: ["top-start", "right-start", "left-start"] }), shift({ padding: 8 })],
-    whileElementsMounted: autoUpdate,
-  });
-
   useEffect(() => {
     setIsVisible(true);
     return () => setIsVisible(false);
   }, []);
 
-  useEffect(() => {
-    if (!anchorEl || !document.body.contains(anchorEl)) return;
-    refs.setReference(anchorEl);
-    update();
-  }, [anchorEl, refs, update]);
+  useLayoutEffect(() => {
+    if (!anchorEl || !document.body.contains(anchorEl)) {
+      setPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      const rect = anchorEl.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 6,
+        left: rect.left,
+      });
+    };
+
+    updatePosition();
+
+    const resizeObserver = new ResizeObserver(updatePosition);
+    resizeObserver.observe(anchorEl);
+
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [anchorEl]);
 
   if (!anchorEl || !document.body.contains(anchorEl)) {
     return null;
@@ -115,12 +122,16 @@ export function AISuggestionPopover({
 
   return (
     <div
-      ref={refs.setFloating}
-      style={floatingStyles}
+      ref={popoverRef}
+      style={{
+        position: "fixed",
+        top: position?.top ?? 0,
+        left: position?.left ?? 0,
+        zIndex: 50,
+      }}
       className="z-50"
     >
       <div
-        ref={popoverRef}
         className={cn(
           "w-80 max-h-[360px] bg-white border border-gray-300 shadow-lg flex flex-col",
           "transition-opacity duration-150 ease-out",

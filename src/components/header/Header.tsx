@@ -1,23 +1,25 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Upload, ChevronRight, Check, Loader2, Download, Sparkles, Command, Zap, Settings2 } from "lucide-react";
+import { Upload, Check, Loader2, Download, Sparkles, Command, Zap, Settings2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGridStore } from "@/store/useGridStore";
 import { ImportWizard, type ImportResult } from "@/components/ImportWizard";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { ExportPreview } from "@/components/ui/ExportPreview";
 import { RulesSettings } from "@/components/ui/RulesSettings";
+import { PayModal } from "@/components/ui/PayModal";
 import { cn } from "@/lib/utils";
 
 type FilterType = "all" | "ai-suggestion" | "duplicate" | "critical";
 
 export function Header() {
-  const { rows, jumpToNextError, filter, setFilter, fileName, processImportResult, isImporting } = useGridStore();
+  const { rows, filter, setFilter, fileName, processImportResult, isImporting } = useGridStore();
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isRulesSettingsOpen, setIsRulesSettingsOpen] = useState(false);
+  const [isPayOpen, setIsPayOpen] = useState(false);
 
   const stats = useMemo(() => {
     let suggestions = 0;
@@ -175,17 +177,15 @@ export function Header() {
               Export
             </Button>
 
-            {stats.totalIssues > 0 ? (
-              <Button size="sm" className="h-6 px-2 text-xs" onClick={() => jumpToNextError()}>
-                Next
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
-            ) : (
-              <Button size="sm" className="h-6 px-2 text-xs bg-emerald-600 hover:bg-emerald-700">
-                <Check className="h-3 w-3 mr-1" />
-                Submit
-              </Button>
-            )}
+            <Button
+              size="sm"
+              className="h-6 px-2 text-xs bg-emerald-600 hover:bg-emerald-700"
+              onClick={() => setIsPayOpen(true)}
+              title="Send payment details via WhatsApp"
+            >
+              <MessageCircle className="h-3.5 w-3.5 mr-1" />
+              Pay
+            </Button>
           </div>
         </div>
 
@@ -224,6 +224,11 @@ export function Header() {
       <RulesSettings
         isOpen={isRulesSettingsOpen}
         onClose={() => setIsRulesSettingsOpen(false)}
+      />
+
+      <PayModal
+        isOpen={isPayOpen}
+        onClose={() => setIsPayOpen(false)}
       />
     </>
   );

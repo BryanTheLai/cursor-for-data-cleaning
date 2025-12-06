@@ -195,7 +195,7 @@ function WindowsErrorDialog({
 
   return (
     <div 
-      className="absolute bg-[#f0f0f0] border border-[#0078d4] shadow-lg animate-dialog-pop"
+      className="absolute bg-white border border-[#0078d4] shadow-lg animate-dialog-pop"
       style={{ 
         top: position.top, 
         left: position.left,
@@ -221,12 +221,12 @@ function WindowsErrorDialog({
             <path d="M10 10 L22 22 M22 10 L10 22" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
           </svg>
         </div>
-        <p className="text-[#1a1a1a] leading-relaxed">{message}</p>
+        <p className="text-[#0f172a] leading-relaxed">{message}</p>
       </div>
       <div className="flex justify-center pb-3 px-4">
         <button 
           onClick={onClose}
-          className="bg-[#f0f0f0] border border-[#8a8a8a] px-6 py-1 text-xs hover:bg-[#e5e5e5] active:bg-[#d0d0d0] focus:outline-none focus:ring-2 focus:ring-[#0078d4]"
+          className="bg-white border border-[#8a8a8a] px-6 py-1 text-xs text-[#0f172a] hover:bg-[#e5e5e5] active:bg-[#d0d0d0] focus:outline-none focus:ring-2 focus:ring-[#0078d4]"
         >
           OK
         </button>
@@ -264,23 +264,23 @@ function TerminalScroll() {
   return (
     <div 
       ref={containerRef}
-      className="bg-[#1e1e1e] text-[#d4d4d4] font-mono text-xs p-4 h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600"
+      className="bg-[#0c140f] text-[#d4d4d4] font-mono text-xs p-4 h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-emerald-700/60 border border-red-500/30 shadow-[0_0_0_1px_rgba(239,68,68,0.2)]"
       style={{ fontFamily: "'Cascadia Code', 'Fira Code', monospace" }}
     >
-      <div className="text-green-400 mb-2">$ python clean_payroll.py payroll_march.csv</div>
+      <div className="text-emerald-400 mb-2">$ python clean_payroll.py payroll_march.csv</div>
       {lines.map((line, idx) => (
         <div 
           key={idx} 
           className={`whitespace-pre-wrap ${
             line.includes('Error') || line.includes('Traceback') 
-              ? 'text-red-400' 
+              ? 'text-red-300' 
               : line.includes('WARNING') 
-                ? 'text-yellow-400'
+                ? 'text-amber-200'
                 : line.includes('>>>') 
-                  ? 'text-green-400'
-                  : line.includes('File') 
-                    ? 'text-blue-300'
-                    : 'text-gray-300'
+                  ? 'text-emerald-300'
+                : line.includes('File') 
+                    ? 'text-emerald-100'
+                    : 'text-gray-200'
           }`}
         >
           {line}
@@ -320,7 +320,7 @@ function ExcelChaos() {
   };
 
   return (
-    <div className="relative bg-white border border-gray-300 h-[400px] overflow-hidden">
+    <div className="relative bg-white border border-gray-300 h-[400px] overflow-hidden text-gray-900">
       <div className="absolute inset-0 overflow-auto">
         <table className="w-full border-collapse text-xs">
           <tbody>
@@ -502,8 +502,54 @@ function RytFlowPreview() {
   );
 }
 
+function CleanFlowSnap() {
+  const rows = [
+    { name: "Ahmad Bin Ali", account: "7612345678", amount: "5000.00", status: "Ready" },
+    { name: "Liyana Chen", account: "8123456789", amount: "2450.00", status: "Ready" },
+    { name: "Vendor Sdn Bhd", account: "9011223344", amount: "12100.00", status: "Ready" },
+  ];
+
+  return (
+    <div className="bg-gradient-to-br from-emerald-900 to-emerald-800 border border-emerald-500/40 rounded-2xl shadow-xl shadow-emerald-900/40">
+      <div className="px-5 py-4 flex items-center justify-between border-b border-emerald-500/30">
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+            <Zap className="w-5 h-5 text-emerald-200" />
+          </div>
+          <div>
+            <div className="text-sm text-emerald-100 font-semibold">RytFlow Run</div>
+            <div className="text-xs text-emerald-200/80">Validated. Duplicates blocked.</div>
+          </div>
+        </div>
+        <div className="text-xs bg-white/10 text-white px-3 py-1 rounded-full border border-white/10">0 warnings</div>
+      </div>
+      <div className="p-5 space-y-3">
+        {rows.map((row, idx) => (
+          <div
+            key={idx}
+            className="grid grid-cols-[1.2fr_1fr_1fr_auto] items-center bg-white/5 rounded-xl px-4 py-3 border border-white/5"
+          >
+            <div className="text-sm text-white font-semibold">{row.name}</div>
+            <div className="text-xs text-emerald-100 font-mono">{row.account}</div>
+            <div className="text-sm text-emerald-200 font-semibold">RM {row.amount}</div>
+            <div className="flex items-center gap-1 text-xs text-emerald-100 bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-400/40">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+              {row.status}
+            </div>
+          </div>
+        ))}
+        <div className="grid grid-cols-3 gap-3 pt-2 text-xs">
+          <div className="bg-white/5 rounded-lg px-3 py-2 border border-emerald-500/20 text-emerald-100">Formats unified</div>
+          <div className="bg-white/5 rounded-lg px-3 py-2 border border-emerald-500/20 text-emerald-100">WhatsApp checks returned</div>
+          <div className="bg-white/5 rounded-lg px-3 py-2 border border-emerald-500/20 text-emerald-100">Ready for payout</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage() {
-  const [showAfter, setShowAfter] = useState(false);
+  const [viewMode, setViewMode] = useState<"pain" | "solution">("pain");
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white overflow-x-hidden">
@@ -549,10 +595,10 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      <section className="pt-32 pb-20 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-full px-4 py-1.5 mb-6">
-            <span className="text-amber-400 text-sm font-medium">For Payment Operations Teams</span>
+      <section className="pt-28 pb-16 px-6">
+        <div className="max-w-5xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-1.5 mb-6">
+            <span className="text-emerald-300 text-sm font-medium">For Payment Operations Teams</span>
           </div>
           
           <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6 tracking-tight">
@@ -562,10 +608,10 @@ export default function LandingPage() {
             </span>
           </h1>
           
-          <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
             Sarah, Payment Ops Manager at a mid-sized bank.<br />
             47 Excel files every Monday. 2000 rows. Different formats.<br />
-            <span className="text-red-400 font-medium">Last month, one duplicate slipped through. RM 180,000—gone.</span>
+            <span className="text-emerald-200 font-medium">Reduce downstream payment risk before money moves.</span>
           </p>
 
           <div className="flex flex-wrap justify-center gap-4 mb-12">
@@ -576,33 +622,33 @@ export default function LandingPage() {
               <Play className="w-5 h-5" /> See the Magic
             </Link>
             <button
-              onClick={() => setShowAfter(!showAfter)}
+              onClick={() => setViewMode(viewMode === "pain" ? "solution" : "pain")}
               className="bg-white/10 hover:bg-white/20 text-white font-medium px-8 py-4 rounded-lg text-lg transition-all border border-white/20"
             >
-              {showAfter ? "Show Pain" : "Show Solution"}
+              {viewMode === "pain" ? "Show Solution" : "Show Pain"}
             </button>
           </div>
 
-          <div className="flex justify-center gap-8 text-sm">
+          <div className="flex justify-center gap-8 text-sm text-gray-300">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-emerald-400" />
-              <span className="text-gray-400">47 errors → <span className="text-white font-semibold">30 seconds</span></span>
+              <span>47 errors → <span className="text-white font-semibold">30 seconds</span></span>
             </div>
             <div className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-emerald-400" />
-              <span className="text-gray-400">Save <span className="text-white font-semibold">RM 156K/year</span></span>
+              <span>Cut cleanup hours by 70–90%</span>
             </div>
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-emerald-400" />
-              <span className="text-gray-400"><span className="text-white font-semibold">Zero</span> duplicate payments</span>
+              <span><span className="text-white font-semibold">Zero</span> duplicate payments</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="pb-20 px-6">
+      <section className="pb-20 px-6 pt-6">
         <div className="max-w-7xl mx-auto">
-          {!showAfter ? (
+          {viewMode === "pain" ? (
             <>
               <div className="text-center mb-12">
                 <h2 className="text-3xl font-bold mb-2 text-red-400">The Current Reality</h2>
@@ -659,6 +705,25 @@ export default function LandingPage() {
                   <div className="text-4xl font-bold text-red-400 mb-2">3 Weeks</div>
                   <div className="text-gray-400">Average time to process one batch of payments</div>
                 </div>
+              </div>
+
+              <div className="mt-16 grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-center">
+                <div className="space-y-4">
+                  <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-1.5 text-emerald-200 text-sm font-medium">
+                    From chaos to clean in one screen
+                  </div>
+                  <h3 className="text-2xl font-bold text-white leading-snug">One calm interface replaces Python scripts, Excel pop-ups, and email chases.</h3>
+                  <p className="text-gray-400 text-base">
+                    Upload the messy CSV, auto-fix errors, ping payees on WhatsApp, and lock duplicates before payout.
+                    No tabs, no macros, no follow-up emails.
+                  </p>
+                  <div className="flex flex-wrap gap-3 text-sm">
+                    <div className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-emerald-200">Auto-fix formats</div>
+                    <div className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-emerald-200">WhatsApp missing fields</div>
+                    <div className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-emerald-200">Duplicate guardrails</div>
+                  </div>
+                </div>
+                <CleanFlowSnap />
               </div>
             </>
           ) : (

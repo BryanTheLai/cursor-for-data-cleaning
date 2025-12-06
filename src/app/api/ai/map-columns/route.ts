@@ -49,18 +49,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const started = performance.now();
+
     const result = await mapColumnsWithAI(
       body.sourceHeaders,
       body.sampleRows,
       body.targetSchema
     );
 
+    const durationMs = Math.round(performance.now() - started);
+
     log.api.info('Mapping complete', {
       mappedCount: Object.values(result.mappings).filter(v => v !== null).length,
       unmappedCount: Object.values(result.mappings).filter(v => v === null).length,
+      durationMs,
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, durationMs });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     log.api.error('Map columns failed', { error: errorMessage });

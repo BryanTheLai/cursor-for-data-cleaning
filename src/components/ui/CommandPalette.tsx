@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useHotkeys } from "react-hotkeys-hook";
 import {
@@ -39,10 +39,13 @@ interface CommandPaletteProps {
 export function CommandPalette({ isOpen: controlledOpen, onOpenChange, onOpenImport, onOpenExport }: CommandPaletteProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isOpen = controlledOpen ?? internalOpen;
-  const setIsOpen = (open: boolean) => {
-    setInternalOpen(open);
-    onOpenChange?.(open);
-  };
+  const setIsOpen = useCallback(
+    (open: boolean) => {
+      setInternalOpen(open);
+      onOpenChange?.(open);
+    },
+    [onOpenChange]
+  );
   const [search, setSearch] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -55,127 +58,156 @@ export function CommandPalette({ isOpen: controlledOpen, onOpenChange, onOpenImp
     applySuggestion,
     applyColumnFix,
     undoLastChange,
+    redoLastChange,
     history,
+    redoStack,
   } = useGridStore();
 
-  const suggestionCount = rows.reduce((acc, row) => {
-    return acc + Object.values(row.status).filter((s) => s?.state === "ai-suggestion").length;
-  }, 0);
+  const commands: CommandItem[] = useMemo(() => {
+    const suggestionCount = rows.reduce((acc, row) => {
+      return acc + Object.values(row.status).filter((s) => s?.state === "ai-suggestion").length;
+    }, 0);
 
-  const duplicateCount = rows.reduce((acc, row) => {
-    return acc + Object.values(row.status).filter((s) => s?.state === "duplicate").length;
-  }, 0);
-
-  const criticalCount = rows.reduce((acc, row) => {
-    return acc + Object.values(row.status).filter((s) => s?.state === "critical").length;
-  }, 0);
-
-  const commands: CommandItem[] = [
-    {
-      id: "next-error",
-      label: "Jump to Next Issue",
-      description: "Navigate to the next cell that needs attention",
-      shortcut: "Tab",
-      icon: <SkipForward className="h-4 w-4" />,
-      action: () => {
-        jumpToNextError();
-        setIsOpen(false);
+    return [
+      {
+        id: "next-error",
+        label: "Jump to Next Issue",
+        description: "Navigate to the next cell that needs attention",
+        shortcut: "Tab",
+        icon: <SkipForward className="h-4 w-4" />,
+        action: () => {
+          jumpToNextError();
+          setIsOpen(false);
+        },
+        category: "navigation",
       },
-      category: "navigation",
-    },
-    {
-      id: "fix-all",
-      label: "Fix All Suggestions",
-      description: `Apply all ${suggestionCount} AI suggestions at once`,
-      shortcut: "⇧⌘F",
-      icon: <Zap className="h-4 w-4 text-amber-500" />,
-      action: () => {
-        rows.forEach((row) => {
-          Object.entries(row.status).forEach(([col, status]) => {
-            if (status?.state === "ai-suggestion") {
-              applySuggestion(row.id, col);
-            }
+      {
+        id: "fix-all",
+        label: "Fix All Suggestions",
+        description: `Apply all ${suggestionCount} AI suggestions at once`,
+        shortcut: "CTRL+SHIFT+F",
+        icon: <Zap className="h-4 w-4 text-amber-500" />,
+        action: () => {
+          rows.forEach((row) => {
+            Object.entries(row.status).forEach(([col, status]) => {
+              if (status?.state === "ai-suggestion") {
+                applySuggestion(row.id, col);
+              }
+            });
           });
-        });
-        setIsOpen(false);
+          setIsOpen(false);
+        },
+        category: "batch",
       },
-      category: "batch",
-    },
-    {
-      id: "fix-column",
-      label: "Fix Current Column",
-      description: "Apply all suggestions in the active column",
-      shortcut: "⇧Tab",
-      icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
-      action: () => {
-        if (activeCell) {
-          applyColumnFix(activeCell.columnKey);
-        }
-        setIsOpen(false);
+      {
+        id: "fix-column",
+        label: "Fix Current Column",
+        description: "Apply all suggestions in the active column",
+        shortcut: "SHIFT+Tab",
+        icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
+        action: () => {
+          if (activeCell) {
+            applyColumnFix(activeCell.columnKey);
+          }
+          setIsOpen(false);
+        },
+        category: "batch",
       },
-      category: "batch",
-    },
-    {
-      id: "undo",
-      label: "Undo Last Change",
-      description: history.length > 0 ? `Revert: ${history[history.length - 1]?.action}` : "No changes to undo",
-      shortcut: "⌘Z",
-      icon: <RotateCcw className="h-4 w-4" />,
-      action: () => {
-        if (history.length > 0) {
-          const last = history[history.length - 1];
-          undoLastChange(last.rowId, last.columnKey);
-        }
-        setIsOpen(false);
+      {
+        id: "undo",
+        label: "Undo Last Change",
+        description: history.length > 0 ? `Revert: ${history[history.length - 1]?.action}` : "No changes to undo",
+        shortcut: "CTRL+Z",
+        icon: <RotateCcw className="h-4 w-4" />,
+        action: () => {
+          if (history.length > 0) {
+            const last = history[history.length - 1];
+            undoLastChange(last.rowId, last.columnKey);
+          }
+          setIsOpen(false);
+        },
+        category: "actions",
       },
-      category: "actions",
-    },
-    {
-      id: "upload",
-      label: "Upload New File",
-      description: "Import a CSV or Excel file",
-      shortcut: "⌘U",
-      icon: <Upload className="h-4 w-4" />,
-      action: () => {
-        onOpenImport?.();
-        setIsOpen(false);
+      {
+        id: "redo",
+        label: "Redo Last Change",
+        description: redoStack.length > 0 ? `Reapply: ${redoStack[redoStack.length - 1]?.action}` : "No changes to redo",
+        shortcut: "CTRL+Y",
+        icon: <RotateCcw className="h-4 w-4 rotate-180" />,
+        action: () => {
+          redoLastChange();
+          setIsOpen(false);
+        },
+        category: "actions",
       },
-      category: "actions",
-    },
-    {
-      id: "export",
-      label: "Export Cleaned Data",
-      description: "Download the cleaned file with before/after comparison",
-      shortcut: "⌘E",
-      icon: <Download className="h-4 w-4" />,
-      action: () => {
-        onOpenExport?.();
-        setIsOpen(false);
+      {
+        id: "upload",
+        label: "Upload New File",
+        description: "Import a CSV or Excel file",
+        shortcut: "CTRL+U",
+        icon: <Upload className="h-4 w-4" />,
+        action: () => {
+          onOpenImport?.();
+          setIsOpen(false);
+        },
+        category: "actions",
       },
-      category: "actions",
-    },
-  ];
+      {
+        id: "export",
+        label: "Export Cleaned Data",
+        description: "Download the cleaned file with before/after comparison",
+        shortcut: "CTRL+E",
+        icon: <Download className="h-4 w-4" />,
+        action: () => {
+          onOpenExport?.();
+          setIsOpen(false);
+        },
+        category: "actions",
+      },
+    ];
+  }, [
+    rows,
+    activeCell,
+    jumpToNextError,
+    applySuggestion,
+    applyColumnFix,
+    undoLastChange,
+    redoLastChange,
+    history,
+    redoStack,
+    onOpenImport,
+    onOpenExport,
+    setIsOpen,
+  ]);
 
-  const filteredCommands = commands.filter((cmd) => {
-    if (!search) return true;
+  const filteredCommands = useMemo(() => {
+    if (!search) return commands;
     const searchLower = search.toLowerCase();
-    return (
-      cmd.label.toLowerCase().includes(searchLower) ||
-      cmd.description.toLowerCase().includes(searchLower)
-    );
-  });
+    return commands.filter((cmd) => {
+      return (
+        cmd.label.toLowerCase().includes(searchLower) ||
+        cmd.description.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [commands, search]);
 
-  const groupedCommands = {
-    navigation: filteredCommands.filter((c) => c.category === "navigation"),
-    batch: filteredCommands.filter((c) => c.category === "batch"),
-    actions: filteredCommands.filter((c) => c.category === "actions"),
-  };
+  const groupedCommands = useMemo(
+    () => ({
+      navigation: filteredCommands.filter((c) => c.category === "navigation"),
+      batch: filteredCommands.filter((c) => c.category === "batch"),
+      actions: filteredCommands.filter((c) => c.category === "actions"),
+    }),
+    [filteredCommands]
+  );
 
-  const flatCommands = [
-    ...groupedCommands.navigation,
-    ...groupedCommands.batch,
-    ...groupedCommands.actions,
-  ];
+  const flatCommands = useMemo(
+    () => [
+      ...groupedCommands.navigation,
+      ...groupedCommands.batch,
+      ...groupedCommands.actions,
+    ],
+    [groupedCommands]
+  );
 
   useHotkeys(
     "mod+k",

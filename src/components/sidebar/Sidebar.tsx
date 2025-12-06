@@ -54,7 +54,7 @@ export function Sidebar() {
       <div
         className={cn(
           "flex border-b border-gray-200",
-          isCollapsed ? "flex-col" : "flex-row"
+          isCollapsed ? "flex-col" : "flex-row justify-between"
         )}
       >
         {tabs.map((tab) => (
@@ -65,7 +65,7 @@ export function Sidebar() {
               if (isCollapsed) setIsCollapsed(false);
             }}
             className={cn(
-              "flex items-center justify-center px-3 py-2.5 text-sm transition-colors",
+              "flex items-center justify-center px-3 py-2.5 text-sm transition-colors flex-1",
               activeTab === tab.id
                 ? "text-emerald-700 border-b-2 border-emerald-600 bg-emerald-50/50"
                 : "text-gray-600 hover:text-gray-900 hover:bg-gray-50",

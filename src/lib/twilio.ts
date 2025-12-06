@@ -145,6 +145,38 @@ export function buildFormLink(requestId: string): string {
   return `${baseUrl}/verify/${requestId}`;
 }
 
+export function buildPaymentDetailsMessage(
+  recipientName: string,
+  details: {
+    amount?: string;
+    bank?: string;
+    accountNumber?: string;
+    date?: string;
+  },
+  formLink: string
+): string {
+  const amount = details.amount || 'N/A';
+  const bank = details.bank || 'N/A';
+  const accountNumber = details.accountNumber || 'N/A';
+  const date = details.date || 'N/A';
+
+  return `Hi ${recipientName},
+
+Here are your payment details for confirmation:
+- Amount: ${amount}
+- Bank: ${bank}
+- Account: ${accountNumber}
+- Date: ${date}
+
+If this looks correct, reply OK.
+If anything is wrong, update it here:
+${formLink}
+
+This link expires in 24 hours.
+
+- RytFlow`;
+}
+
 export function buildWhatsAppMessage(
   recipientName: string,
   missingFields: string[],

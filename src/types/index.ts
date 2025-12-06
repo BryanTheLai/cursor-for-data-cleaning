@@ -64,7 +64,7 @@ export interface HistoryEntry {
   columnKey: string;
   previousValue: string;
   newValue: string;
-  action: "ai-fix" | "manual" | "manual-form" | "whatsapp" | "undo" | "duplicate-resolved" | "critical-override" | "skip-row";
+  action: "ai-fix" | "manual" | "manual-form" | "whatsapp" | "undo" | "redo" | "duplicate-resolved" | "critical-override" | "skip-row";
   timestamp: Date;
   reason?: string;
 }

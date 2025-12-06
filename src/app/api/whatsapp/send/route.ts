@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendWhatsAppMessage, buildFormLink, buildWhatsAppMessage, isTwilioConfigured } from '@/lib/twilio';
+import { sendWhatsAppMessage, buildFormLink, buildWhatsAppMessage, buildPaymentDetailsMessage, isTwilioConfigured } from '@/lib/twilio';
 import { createServerSupabaseClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,6 +12,12 @@ export interface SendWhatsAppRequest {
   recipientName: string;
   missingFields: string[];
   existingData?: Record<string, string>;
+  details?: {
+    amount?: string;
+    bank?: string;
+    accountNumber?: string;
+    date?: string;
+  };
 }
 
 function isValidUUID(str: string): boolean {
@@ -55,20 +61,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!body.missingFields || body.missingFields.length === 0) {
+    const hasMissingFields = Array.isArray(body.missingFields) && body.missingFields.length > 0;
+    const hasDetails = !!body.details && Object.keys(body.details).length > 0;
+
+    if (!hasMissingFields && !hasDetails) {
       return NextResponse.json(
-        { error: 'missingFields is required and must not be empty' },
+        { error: 'Provide missingFields or details to build the message' },
         { status: 400 }
       );
     }
 
     const requestId = uuidv4();
     const formLink = buildFormLink(requestId);
-    const message = buildWhatsAppMessage(
-      body.recipientName || 'there',
-      body.missingFields,
-      formLink
-    );
+    const message = hasDetails
+      ? buildPaymentDetailsMessage(
+          body.recipientName || 'there',
+          body.details || {},
+          formLink
+        )
+      : buildWhatsAppMessage(
+          body.recipientName || 'there',
+          body.missingFields || [],
+          formLink
+        );
 
     log.whatsapp.info('Built message', { 
       requestId, 
@@ -82,7 +97,7 @@ export async function POST(request: NextRequest) {
       rowId: body.rowId,
       recipientName: body.recipientName || 'Unknown',
       phoneNumber: normalizedPhone || body.phoneNumber,
-      missingFields: body.missingFields,
+      missingFields: body.missingFields || [],
       existingData: body.existingData || {},
       formUrl: formLink,
     });

@@ -96,9 +96,12 @@ export const MOCK_ROWS: RowData[] = [
     },
     status: {
       amount: {
-        state: "critical",
-        message: "PDF Invoice shows RM 6,000.00 - Mismatch detected",
-        source: "pdf",
+        state: "ai-suggestion",
+        originalValue: "5500.00",
+        suggestion: "6000.00",
+        confidence: 0.72,
+        message: "Amount is lower than typical for this vendor. Please review and confirm.",
+        source: "ai",
       },
     },
     locked: false,

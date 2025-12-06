@@ -43,11 +43,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const started = performance.now();
       const results = await cleanBatchWithAI(batchBody.rows, batchBody.targetColumns);
+      const durationMs = Math.round(performance.now() - started);
       
-      log.api.info('Batch cleaning complete', { resultCount: results.length });
+      log.api.info('Batch cleaning complete', { resultCount: results.length, durationMs });
       
-      return NextResponse.json({ results });
+      return NextResponse.json({ results, durationMs });
     } else {
       const singleBody = body as CleanRowRequest;
       
@@ -62,14 +64,17 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const started = performance.now();
       const result = await cleanRowWithAI(singleBody.rowData, singleBody.targetColumns);
+      const durationMs = Math.round(performance.now() - started);
       
       log.api.info('Single row cleaning complete', {
         changesCount: result.changes.length,
         errorsCount: result.errors.length,
+        durationMs,
       });
       
-      return NextResponse.json(result);
+      return NextResponse.json({ ...result, durationMs });
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

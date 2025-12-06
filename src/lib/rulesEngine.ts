@@ -49,6 +49,17 @@ export interface RuleSet {
   fields: FieldRule[];
 }
 
+export interface RuleConfig {
+  id: string;
+  key: string;
+  label: string;
+  type: FieldType;
+  required: boolean;
+  enabled: boolean;
+  format?: string;
+  options?: EnumOption[];
+}
+
 const MALAYSIAN_BANK_CODES: EnumOption[] = [
   { value: 'MBB', label: 'Maybank', aliases: ['maybank', 'maybank berhad', 'malayan banking'] },
   { value: 'CIMB', label: 'CIMB Bank', aliases: ['cimb', 'cimb bank', 'cimb bank berhad'] },
@@ -62,6 +73,15 @@ const MALAYSIAN_BANK_CODES: EnumOption[] = [
   { value: 'UOB', label: 'UOB Bank', aliases: ['uob', 'uob bank', 'united overseas bank'] },
   { value: 'HSBC', label: 'HSBC Bank', aliases: ['hsbc', 'hsbc bank'] },
   { value: 'SCB', label: 'Standard Chartered', aliases: ['standard chartered', 'scb', 'stanchart'] },
+];
+
+export const DEFAULT_RULE_CONFIG: RuleConfig[] = [
+  { id: '1', key: 'name', label: 'Payee Name', type: 'string', required: true, enabled: true, format: 'Title Case' },
+  { id: '2', key: 'amount', label: 'Amount (RM)', type: 'number', required: true, enabled: true, format: '0000.00 (no currency)' },
+  { id: '3', key: 'accountNumber', label: 'Account Number', type: 'string', required: true, enabled: true, format: 'Digits only (no dashes)' },
+  { id: '4', key: 'bank', label: 'Bank Code', type: 'enum', required: false, enabled: true, format: '3-letter code (MBB, PBB)', options: MALAYSIAN_BANK_CODES },
+  { id: '5', key: 'phone', label: 'Phone Number', type: 'phone', required: false, enabled: true, format: '+60XXXXXXXXX' },
+  { id: '6', key: 'date', label: 'Date', type: 'date', required: false, enabled: true, format: 'YYYY-MM-DD' },
 ];
 
 function normalizeString(value: string): string {

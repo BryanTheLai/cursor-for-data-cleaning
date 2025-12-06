@@ -23,8 +23,10 @@ const selector = (state: GridState) => ({
   applyColumnFix: state.applyColumnFix,
   jumpToNextError: state.jumpToNextError,
   undoLastChange: state.undoLastChange,
+  redoLastChange: state.redoLastChange,
   updateCellValue: state.updateCellValue,
   history: state.history,
+  redoStack: state.redoStack,
   getFilteredRows: state.getFilteredRows,
 });
 
@@ -52,15 +54,35 @@ export function DataGrid() {
     applyColumnFix,
     jumpToNextError,
     undoLastChange,
+    redoLastChange,
     updateCellValue,
     history,
+    redoStack,
     getFilteredRows,
   } = useGridStore(useShallow(selector));
 
-  const filteredRows = useMemo<RowData[]>(() => getFilteredRows(), [rows, filter]);
+  const filteredRows = useMemo<RowData[]>(() => getFilteredRows(), [getFilteredRows]);
+
+  const orderedRows = useMemo<RowData[]>(() => {
+    const nonSkipped: RowData[] = [];
+    const skipped: RowData[] = [];
+
+    filteredRows.forEach((row) => {
+      const isSkipped = Object.values(row.status).some((status) => status?.state === "skipped");
+      if (isSkipped) {
+        skipped.push(row);
+      } else {
+        nonSkipped.push(row);
+      }
+    });
+
+    return [...nonSkipped, ...skipped];
+  }, [filteredRows]);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const activeCellRef = useRef<HTMLTableCellElement | null>(null);
+  const anchorRaf = useRef<number | null>(null);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const { addToast } = useToast();
   const [recentlyFixed, setRecentlyFixed] = useState<Set<string>>(new Set());
   const [editingCell, setEditingCell] = useState<{ rowId: string; columnKey: string } | null>(null);
@@ -79,6 +101,16 @@ export function DataGrid() {
     return () => clearTimeout(timeoutId);
   }, []);
 
+  useEffect(() => {
+    setAnchorEl(null);
+  }, [activeCell?.rowId, activeCell?.columnKey]);
+
+  useEffect(() => {
+    return () => {
+      if (anchorRaf.current !== null) cancelAnimationFrame(anchorRaf.current);
+    };
+  }, []);
+
   // Get active cell status for popover
   const getActiveCellStatus = useCallback(() => {
     if (!activeCell) return null;
@@ -91,7 +123,8 @@ export function DataGrid() {
   const showPopover =
     activeCell &&
     activeCellStatus &&
-    ["ai-suggestion", "duplicate", "critical"].includes(activeCellStatus.state);
+    ["ai-suggestion", "duplicate", "critical"].includes(activeCellStatus.state) &&
+    !!anchorEl;
 
   // Tab to accept suggestion and jump to next error
   useHotkeys(
@@ -102,6 +135,19 @@ export function DataGrid() {
         applySuggestion(activeCell.rowId, activeCell.columnKey);
       }
       jumpToNextError();
+    },
+    { enableOnFormTags: false }
+  );
+
+  // Redo shortcut (Ctrl+Y / Cmd+Shift+Z)
+  useHotkeys(
+    ["ctrl+y", "mod+shift+z"],
+    (e) => {
+      e.preventDefault();
+      if (redoStack.length > 0) {
+        redoLastChange();
+        addToast("Redo: Reapplied change", "info");
+      }
     },
     { enableOnFormTags: false }
   );
@@ -333,9 +379,10 @@ export function DataGrid() {
             </tr>
           </thead>
           <tbody>
-            {filteredRows.map((row: RowData, rowIndex: number) => {
+            {orderedRows.map((row: RowData, rowIndex: number) => {
               const hasActiveCell = activeCell?.rowId === row.id;
               const activeCellState = hasActiveCell ? row.status[activeCell.columnKey]?.state : null;
+              const isSkippedRow = Object.values(row.status).some((status) => status?.state === "skipped");
               
               return (
               <tr
@@ -343,10 +390,10 @@ export function DataGrid() {
                 className={cn(
                   "border-b border-gray-100 hover:bg-gray-50/50 transition-colors",
                   row.locked && "opacity-60",
-                  // Highlight entire row when an issue cell is selected
                   hasActiveCell && activeCellState === "ai-suggestion" && "bg-yellow-50/30",
                   hasActiveCell && activeCellState === "duplicate" && "bg-orange-50/30",
-                  hasActiveCell && activeCellState === "critical" && "bg-red-50/30"
+                  hasActiveCell && activeCellState === "critical" && "bg-red-50/30",
+                  isSkippedRow && "line-through decoration-2 decoration-red-400 text-gray-400 animate-skip-fade"
                 )}
               >
                 <td className="w-10 px-2 py-2 text-xs text-gray-400 border-r border-gray-200 bg-gray-50/50 tabular-nums">
@@ -359,7 +406,15 @@ export function DataGrid() {
                   return (
                     <GridCell
                       key={`${row.id}-${column.key}`}
-                      ref={isActive ? activeCellRef : null}
+                      ref={(el) => {
+                        if (isActive) {
+                          activeCellRef.current = el;
+                          if (anchorRaf.current !== null) cancelAnimationFrame(anchorRaf.current);
+                          anchorRaf.current = requestAnimationFrame(() => {
+                            if (el && el !== anchorEl) setAnchorEl(el);
+                          });
+                        }
+                      }}
                       rowId={row.id}
                       columnKey={column.key}
                       value={row.data[column.key] || ""}

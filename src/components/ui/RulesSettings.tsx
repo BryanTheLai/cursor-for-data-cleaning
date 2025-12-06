@@ -1,29 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X, Settings2, Check, Trash2, Plus, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-export interface RuleConfig {
-  id: string;
-  key: string;
-  label: string;
-  type: "string" | "number" | "date" | "phone" | "enum";
-  required: boolean;
-  enabled: boolean;
-  format?: string;
-  options?: { value: string; label: string }[];
-}
-
-const DEFAULT_RULES: RuleConfig[] = [
-  { id: "1", key: "name", label: "Payee Name", type: "string", required: true, enabled: true, format: "Title Case" },
-  { id: "2", key: "amount", label: "Amount (RM)", type: "number", required: true, enabled: true, format: "0000.00 (no currency)" },
-  { id: "3", key: "accountNumber", label: "Account Number", type: "string", required: true, enabled: true, format: "Digits only (no dashes)" },
-  { id: "4", key: "bank", label: "Bank Code", type: "enum", required: false, enabled: true, format: "3-letter code (MBB, PBB)" },
-  { id: "5", key: "phone", label: "Phone Number", type: "phone", required: false, enabled: true, format: "+60XXXXXXXXX" },
-  { id: "6", key: "date", label: "Date", type: "date", required: false, enabled: true, format: "YYYY-MM-DD" },
-];
+import { DEFAULT_RULE_CONFIG, type RuleConfig } from "@/lib/rulesEngine";
+import { useRuleStore } from "@/store/useRuleStore";
 
 interface RulesSettingsProps {
   isOpen: boolean;
@@ -32,20 +14,21 @@ interface RulesSettingsProps {
 }
 
 export function RulesSettings({ isOpen, onClose, onSave }: RulesSettingsProps) {
-  const [rules, setRules] = useState<RuleConfig[]>(DEFAULT_RULES);
+  const { rules: storedRules, setRules: persistRules, resetRules } = useRuleStore();
+  const [rules, setRules] = useState<RuleConfig[]>(DEFAULT_RULE_CONFIG);
   const [editingRule, setEditingRule] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
+  const defaultRules = useMemo(() => DEFAULT_RULE_CONFIG, []);
+
   useEffect(() => {
-    const saved = localStorage.getItem("dwmtcd-rules");
-    if (saved) {
-      try {
-        setRules(JSON.parse(saved));
-      } catch {
-        setRules(DEFAULT_RULES);
-      }
+    if (isOpen) {
+      setRules(storedRules.length > 0 ? storedRules : defaultRules);
+      setHasChanges(false);
+      setEditingRule(null);
     }
-  }, []);
+  }, [isOpen, storedRules, defaultRules]);
 
   if (!isOpen) return null;
 
@@ -90,6 +73,18 @@ export function RulesSettings({ isOpen, onClose, onSave }: RulesSettingsProps) {
     setHasChanges(true);
   };
 
+  const handleReorder = (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    const current = [...rules];
+    const fromIndex = current.findIndex(r => r.id === fromId);
+    const toIndex = current.findIndex(r => r.id === toId);
+    if (fromIndex === -1 || toIndex === -1) return;
+    const [moved] = current.splice(fromIndex, 1);
+    current.splice(toIndex, 0, moved);
+    setRules(current);
+    setHasChanges(true);
+  };
+
   const handleSave = () => {
     localStorage.setItem("dwmtcd-rules", JSON.stringify(rules));
     onSave?.(rules);
@@ -98,8 +93,8 @@ export function RulesSettings({ isOpen, onClose, onSave }: RulesSettingsProps) {
   };
 
   const handleReset = () => {
-    setRules(DEFAULT_RULES);
-    localStorage.removeItem("dwmtcd-rules");
+    resetRules();
+    setRules(defaultRules);
     setHasChanges(true);
   };
 
@@ -130,6 +125,22 @@ export function RulesSettings({ isOpen, onClose, onSave }: RulesSettingsProps) {
                   "border p-4 transition-all",
                   rule.enabled ? "border-gray-200 bg-white" : "border-gray-100 bg-gray-50 opacity-60"
                 )}
+                draggable
+                onDragStart={(e) => {
+                  setDraggingId(rule.id);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (draggingId) {
+                    handleReorder(draggingId, rule.id);
+                  }
+                  setDraggingId(null);
+                }}
               >
                 <div className="flex items-start gap-3">
                   <div className="pt-1 cursor-grab text-gray-300">

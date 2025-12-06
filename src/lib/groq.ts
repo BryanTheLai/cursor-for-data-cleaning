@@ -123,6 +123,10 @@ export async function cleanRowWithAI(
 
   const systemPrompt = `You are a data cleaning assistant for Malaysian bank payroll data.
 Clean the input data according to the specified rules.
+Never guess values you cannot infer with high confidence.
+If a field is missing or unrecognizable, mark it as an error with message "Request via WhatsApp form" and severity "red".
+Preserve phone numbers exactly as provided; if phone is missing, set it to +60138509983.
+Do not invent bank codes; if unknown, keep original and mark error as above.
 Return ONLY valid JSON, no markdown or explanation.`;
 
   const userPrompt = `Clean this row data according to these rules.

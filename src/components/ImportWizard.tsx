@@ -293,24 +293,7 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      await processFile(file);
-    }
-  }, []);
-
-  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      await processFile(file);
-    }
-  }, []);
-
-  const processFile = async (file: File) => {
+  const processFile = useCallback(async (file: File) => {
     setIsLoading(true);
     setError(null);
     
@@ -360,7 +343,24 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [targetSchema]);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      await processFile(file);
+    }
+  }, [processFile]);
+
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await processFile(file);
+    }
+  }, [processFile]);
 
   const getMergedMappings = (): Record<string, string | null> => {
     return { ...mappingResult?.mappings, ...manualMappings };
