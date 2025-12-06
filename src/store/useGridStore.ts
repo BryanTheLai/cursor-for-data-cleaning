@@ -473,21 +473,22 @@ export const useGridStore = create<GridState>((set, get) => {
     if (rowIndex === -1) return;
 
     const row = rows[rowIndex];
-    const previousStatus = row.status[columnKey];
     const newRows = [...rows];
+    
+    const restoredStatus: CellStatus = lastEntry.previousStatus || {
+      state: "ai-suggestion",
+      originalValue: lastEntry.previousValue,
+      suggestion: lastEntry.newValue,
+      message: "Previous suggestion restored",
+      source: "ai",
+    };
+
     newRows[rowIndex] = {
       ...row,
       data: { ...row.data, [columnKey]: lastEntry.previousValue },
       status: {
         ...row.status,
-        [columnKey]: {
-          state: "ai-suggestion",
-          originalValue: lastEntry.previousValue,
-          suggestion: lastEntry.newValue,
-          message: previousStatus?.message || "Previous suggestion restored",
-          confidence: previousStatus?.confidence,
-          source: previousStatus?.source || "ai",
-        },
+        [columnKey]: restoredStatus,
       },
     };
 
@@ -865,16 +866,18 @@ export const useGridStore = create<GridState>((set, get) => {
         },
       };
     } else if (action === "skip") {
+      const skippedStatus: Record<string, CellStatus> = {};
+      Object.keys(row.status).forEach((key) => {
+        skippedStatus[key] = { 
+          state: "skipped", 
+          source: row.status[key]?.source || "ai",
+          message: "Row skipped" 
+        };
+      });
+      
       newRows[rowIndex] = {
         ...row,
-        status: {
-          ...row.status,
-          [columnKey]: { 
-            state: "skipped", 
-            source: "duplicate",
-            message: "Skipped - duplicate transaction" 
-          },
-        },
+        status: skippedStatus,
       };
     }
 
@@ -886,6 +889,7 @@ export const useGridStore = create<GridState>((set, get) => {
       newValue: row.data[columnKey],
       action: action === "skip" ? "skip-row" : "duplicate-resolved",
       timestamp: new Date(),
+      previousStatus: row.status[columnKey],
     };
 
     set({ rows: newRows, history: [...history, historyEntry] });
@@ -897,6 +901,7 @@ export const useGridStore = create<GridState>((set, get) => {
     if (rowIndex === -1) return;
 
     const row = rows[rowIndex];
+    const previousStatus = row.status[columnKey];
     const newRows = [...rows];
     
     newRows[rowIndex] = {
@@ -905,7 +910,7 @@ export const useGridStore = create<GridState>((set, get) => {
         ...row.status,
         [columnKey]: { 
           state: "validated", 
-          source: row.status[columnKey]?.source,
+          source: previousStatus?.source,
           message: `Override approved: ${reason}` 
         },
       },
@@ -920,6 +925,7 @@ export const useGridStore = create<GridState>((set, get) => {
       action: "critical-override",
       timestamp: new Date(),
       reason,
+      previousStatus,
     };
 
     set({ rows: newRows, history: [...history, historyEntry] });

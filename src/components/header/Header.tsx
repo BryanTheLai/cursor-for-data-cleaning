@@ -25,29 +25,28 @@ export function Header() {
     let suggestions = 0;
     let duplicates = 0;
     let critical = 0;
-    let cleanRows = 0;
+    let totalCells = 0;
+    let cleanCells = 0;
 
     rows.forEach((row) => {
-      let rowHasIssue = false;
       Object.values(row.status).forEach((status) => {
+        totalCells++;
         if (status?.state === "ai-suggestion") {
           suggestions++;
-          rowHasIssue = true;
         } else if (status?.state === "duplicate") {
           duplicates++;
-          rowHasIssue = true;
         } else if (status?.state === "critical") {
           critical++;
-          rowHasIssue = true;
+        } else {
+          cleanCells++;
         }
       });
-      if (!rowHasIssue) cleanRows++;
     });
 
     const totalIssues = suggestions + duplicates + critical;
-    const percent = rows.length > 0 ? Math.round((cleanRows / rows.length) * 100) : 100;
+    const percent = totalCells > 0 ? Math.round((cleanCells / totalCells) * 100) : 100;
 
-    return { totalIssues, suggestions, duplicates, critical, percent, cleanRows };
+    return { totalIssues, suggestions, duplicates, critical, percent };
   }, [rows]);
 
   const filterButtons: { id: FilterType; label: string; count: number; dotColor: string; activeColor: string }[] = [

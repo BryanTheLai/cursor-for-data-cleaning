@@ -322,15 +322,29 @@ export function AISuggestionPopover({
               
               {/* Override option for sanctioned entities or PDF mismatches */}
               {(status.source === "ai" || status.source === "pdf") && !showOverrideInput && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowOverrideInput(true)}
-                  className="flex-1 text-amber-600 border-amber-300 hover:bg-amber-50"
-                >
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  Override with Reason
-                </Button>
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowOverrideInput(true)}
+                    className="flex-1 text-amber-600 border-amber-300 hover:bg-amber-50"
+                  >
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    Override with Reason
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      resolveDuplicate(rowId, columnKey, "skip");
+                      setActiveCell(null);
+                    }}
+                    className="text-red-600 border-red-300 hover:bg-red-50"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Skip Row
+                  </Button>
+                </>
               )}
               
               {/* Override reason input */}

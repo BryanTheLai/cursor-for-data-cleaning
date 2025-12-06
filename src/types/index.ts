@@ -67,6 +67,7 @@ export interface HistoryEntry {
   action: "ai-fix" | "manual" | "manual-form" | "whatsapp" | "undo" | "redo" | "duplicate-resolved" | "critical-override" | "skip-row";
   timestamp: Date;
   reason?: string;
+  previousStatus?: CellStatus;
 }
 
 export interface ImportSession {

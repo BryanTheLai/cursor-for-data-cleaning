@@ -311,14 +311,29 @@ export function DataGrid() {
     { enableOnFormTags: false }
   );
 
-  // Scroll active cell into view
+  // Scroll active cell into view (only if not already visible)
   useEffect(() => {
-    if (activeCellRef.current) {
-      activeCellRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "nearest",
-      });
+    if (activeCellRef.current && gridRef.current) {
+      const cell = activeCellRef.current;
+      const container = gridRef.current.querySelector('.overflow-auto');
+      if (!container) return;
+      
+      const cellRect = cell.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      
+      const isVisible = 
+        cellRect.top >= containerRect.top + 40 &&
+        cellRect.bottom <= containerRect.bottom - 20 &&
+        cellRect.left >= containerRect.left &&
+        cellRect.right <= containerRect.right - 20;
+      
+      if (!isVisible) {
+        cell.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "nearest",
+        });
+      }
     }
   }, [activeCell]);
 
