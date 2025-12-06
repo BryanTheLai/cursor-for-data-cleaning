@@ -1,31 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Send, Check, Clock, ExternalLink, RefreshCw, Copy, CheckCircle2 } from "lucide-react";
 import { useGridStore } from "@/store/useGridStore";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function WhatsAppPanel() {
-  const { whatsappRequests, pollForWhatsAppReplies, isPolling } = useGridStore();
+  const { whatsappRequests, isPolling } = useGridStore();
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const pendingCount = whatsappRequests.filter((r) => r.status === "pending").length;
   const repliedCount = whatsappRequests.filter((r) => r.status === "replied").length;
 
-  const poll = useCallback(() => {
-    if (pendingCount > 0) {
-      pollForWhatsAppReplies();
-    }
-  }, [pendingCount, pollForWhatsAppReplies]);
-
-  useEffect(() => {
-    if (pendingCount === 0) return;
-    
-    poll();
-    const interval = setInterval(poll, 3000);
-    return () => clearInterval(interval);
-  }, [pendingCount, poll]);
+  // Polling is now handled in DataGrid to ensure it runs regardless of which tab is active
 
   const copyFormLink = async (requestId: string) => {
     const formLink = `${window.location.origin}/verify/${requestId}`;

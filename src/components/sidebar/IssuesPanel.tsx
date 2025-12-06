@@ -111,11 +111,12 @@ export function IssuesPanel() {
     setActiveCell({ rowId: issue.rowId, columnKey: issue.columnKey });
   };
 
-  const handleFixAllType = (type: Issue["type"]) => {
-    const issuesOfType = issues.filter((i) => i.type === type && i.type === "ai-suggestion");
-    issuesOfType.forEach((issue) => {
-      applySuggestion(issue.rowId, issue.columnKey);
-    });
+  const handleFixAllSuggestions = () => {
+    issues
+      .filter((i) => i.type === "ai-suggestion" && i.suggestion)
+      .forEach((issue) => {
+        applySuggestion(issue.rowId, issue.columnKey);
+      });
   };
 
   const handleFixByColumn = (columnKey: string) => {
@@ -147,7 +148,7 @@ export function IssuesPanel() {
         {grouped.aiSuggestions.length > 0 && (
           <div className="space-y-2">
             <button
-              onClick={() => handleFixAllType("ai-suggestion")}
+              onClick={handleFixAllSuggestions}
               className="w-full text-left px-3 py-2 bg-amber-50 border border-amber-200 text-xs hover:bg-amber-100 transition-colors"
               title="Apply all suggested fixes at once"
             >

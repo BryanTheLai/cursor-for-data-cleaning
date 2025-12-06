@@ -74,6 +74,7 @@ interface GridState {
   resolveDuplicate: (rowId: string, columnKey: string, action: "proceed" | "skip") => void;
   overrideCritical: (rowId: string, columnKey: string, reason: string) => void;
   handleRealtimeUpdate: (rowId: string, data: Partial<RowData>) => void;
+  resetDemo: () => void;
 }
 
 let historySeeded = false;
@@ -938,5 +939,32 @@ export const useGridStore = create<GridState>((set, get) => {
     };
 
     set({ rows: newRows });
+  },
+
+  resetDemo: () => {
+    console.log("[STORE] Resetting demo state");
+    clearHistory();
+    seedDemoHistory();
+    
+    // Deep clone MOCK_ROWS to ensure fresh state
+    const freshRows = MOCK_ROWS.map(row => ({
+      ...row,
+      data: { ...row.data },
+      status: { ...row.status },
+    }));
+    
+    set({
+      rows: freshRows,
+      columns: COLUMNS,
+      activeCell: null,
+      fileName: "payroll_batch_2024.xlsx",
+      workspaceId: null,
+      whatsappRequests: [],
+      history: [],
+      redoStack: [],
+      filter: "all",
+      isImporting: false,
+      isPolling: false,
+    });
   },
 }});

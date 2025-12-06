@@ -181,7 +181,8 @@ export function Header() {
               size="sm"
               className="h-6 px-2 text-xs bg-emerald-600 hover:bg-emerald-700"
               onClick={() => setIsPayOpen(true)}
-              title="Send payment details via WhatsApp"
+              title="Resolve all issues before sending payment details via WhatsApp"
+              disabled={!isComplete}
             >
               <MessageCircle className="h-3.5 w-3.5 mr-1" />
               Pay

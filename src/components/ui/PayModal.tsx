@@ -99,6 +99,15 @@ export function PayModal({ isOpen, onClose }: PayModalProps) {
     );
 
     setSendStatus({ ...nextStatus });
+    setSelected((prev) => {
+      const next = new Set(prev);
+      candidates.forEach((c) => {
+        if (nextStatus[c.id] === "sent") {
+          next.delete(c.id);
+        }
+      });
+      return next;
+    });
     setIsSending(false);
   };
 
@@ -160,15 +169,20 @@ export function PayModal({ isOpen, onClose }: PayModalProps) {
           ) : (
             candidates.map((c) => {
               const status = sendStatus[c.id] || "idle";
+              const isSent = status === "sent";
               return (
                 <label
                   key={c.id}
-                  className="flex items-center gap-3 px-6 py-3 hover:bg-gray-50 cursor-pointer"
+                  className={cn(
+                    "flex items-center gap-3 px-6 py-3",
+                    isSent ? "opacity-60 pointer-events-none" : "hover:bg-gray-50 cursor-pointer"
+                  )}
                 >
                   <input
                     type="checkbox"
                     checked={selected.has(c.id)}
                     onChange={() => toggleSelect(c.id)}
+                    disabled={isSent}
                     className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
                   />
                   <div className="flex-1 min-w-0">

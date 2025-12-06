@@ -28,6 +28,8 @@ const selector = (state: GridState) => ({
   history: state.history,
   redoStack: state.redoStack,
   getFilteredRows: state.getFilteredRows,
+  whatsappRequests: state.whatsappRequests,
+  pollForWhatsAppReplies: state.pollForWhatsAppReplies,
 });
 
 const AISuggestionPopover = dynamic(
@@ -59,9 +61,11 @@ export function DataGrid() {
     history,
     redoStack,
     getFilteredRows,
+    whatsappRequests,
+    pollForWhatsAppReplies,
   } = useGridStore(useShallow(selector));
 
-  const filteredRows = useMemo<RowData[]>(() => getFilteredRows(), [getFilteredRows]);
+  const filteredRows = useMemo<RowData[]>(() => getFilteredRows(), [rows, filter, getFilteredRows]);
 
   const orderedRows = useMemo<RowData[]>(() => {
     const nonSkipped: RowData[] = [];
@@ -111,6 +115,20 @@ export function DataGrid() {
     };
   }, []);
 
+  // Poll for WhatsApp replies when there are pending requests
+  const pendingWhatsAppCount = useMemo(
+    () => whatsappRequests.filter((r) => r.status === "pending").length,
+    [whatsappRequests]
+  );
+
+  useEffect(() => {
+    if (pendingWhatsAppCount === 0) return;
+
+    pollForWhatsAppReplies();
+    const interval = setInterval(pollForWhatsAppReplies, 3000);
+    return () => clearInterval(interval);
+  }, [pendingWhatsAppCount, pollForWhatsAppReplies]);
+
   // Get active cell status for popover
   const getActiveCellStatus = useCallback(() => {
     if (!activeCell) return null;
@@ -136,7 +154,8 @@ export function DataGrid() {
       }
       jumpToNextError();
     },
-    { enableOnFormTags: false }
+    { enableOnFormTags: true },
+    [activeCell, activeCellStatus, applySuggestion, jumpToNextError]
   );
 
   // Redo shortcut (Ctrl+Y / Cmd+Shift+Z)
@@ -170,7 +189,8 @@ export function DataGrid() {
         }
       }
     },
-    { enableOnFormTags: false }
+    { enableOnFormTags: true },
+    [activeCell, rows, columns, applyColumnFix, addToast, jumpToNextError]
   );
 
   // Escape to reject suggestion or cancel editing

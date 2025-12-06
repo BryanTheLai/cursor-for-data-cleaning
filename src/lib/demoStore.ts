@@ -14,6 +14,7 @@ export interface DemoWhatsAppRequest {
   createdAt: Date;
   submittedAt?: Date;
   submittedData?: Record<string, string>;
+  processed?: boolean;
 }
 
 interface StoredRequest {
@@ -28,13 +29,13 @@ interface StoredRequest {
   createdAt: string;
   submittedAt?: string;
   submittedData?: Record<string, string>;
+  processed?: boolean;
 }
 
 const STORE_FILE = path.join(process.cwd(), '.demo-store.json');
 
 class DemoStore {
   private requests: Map<string, DemoWhatsAppRequest> = new Map();
-  private processedSubmissions: Set<string> = new Set();
 
   constructor() {
     this.loadFromDisk();
@@ -131,17 +132,22 @@ class DemoStore {
       r => r.status === 'submitted' && 
            r.submittedAt && 
            r.submittedAt > fiveMinutesAgo &&
-           !this.processedSubmissions.has(r.id)
+           !r.processed
     );
   }
 
   markAsProcessed(id: string): void {
-    this.processedSubmissions.add(id);
-    log.api.info('[DemoStore] Marked as processed', { id });
+    const request = this.requests.get(id);
+    if (request) {
+      request.processed = true;
+      this.saveToDisk();
+      log.api.info('[DemoStore] Marked as processed', { id });
+    }
   }
 
   isProcessed(id: string): boolean {
-    return this.processedSubmissions.has(id);
+    const request = this.requests.get(id);
+    return request?.processed ?? false;
   }
 
   clear(): void {
