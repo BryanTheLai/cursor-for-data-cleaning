@@ -148,7 +148,7 @@ export function AISuggestionPopover({
     >
       <div
         className={cn(
-          "w-80 max-h-[360px] bg-white border border-gray-300 shadow-lg flex flex-col",
+          "w-80 max-h-[360px] bg-white border border-gray-200 shadow-2xl rounded-lg flex flex-col",
           "transition-opacity duration-150 ease-out",
           isVisible ? "opacity-100" : "opacity-0"
         )}
@@ -259,7 +259,7 @@ export function AISuggestionPopover({
           )}
         </div>
 
-        <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-200 bg-gray-50 rounded-b-lg">
           {status.state === "ai-suggestion" && status.suggestion && (
             <>
               <Button size="sm" onClick={onApply} className="flex-1 justify-center bg-[#0000e6] hover:bg-[#0000cc] text-white transition-all duration-150" title="Accept this fix and move to next issue">
@@ -313,8 +313,8 @@ export function AISuggestionPopover({
                     className={cn(
                       "flex-1 transition-all",
                       sendStatus === "error" 
-                        ? "text-red-600 border-red-300 bg-red-50" 
-                        : "text-green-600 border-green-300 hover:bg-green-50"
+                        ? "text-[#fb73ff] border-[#fb73ff]/50 bg-[#fb73ff]/10" 
+                        : "text-white bg-[#0000e6] border-[#0000e6] hover:bg-[#0000cc]"
                     )}
                   >
                     {isSending ? (
@@ -362,7 +362,7 @@ export function AISuggestionPopover({
                   resolveDuplicate(rowId, columnKey, "skip");
                   setActiveCell(null);
                 }}
-                className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
+                className="flex-1 text-[#fb73ff] border-[#fb73ff]/60 hover:bg-[#fb73ff]/10"
               >
                 <X className="h-3 w-3 mr-1" />
                 Skip Row

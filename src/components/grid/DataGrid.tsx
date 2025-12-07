@@ -149,11 +149,11 @@ export function DataGrid() {
   // Tab to accept suggestion / proceed past duplicate/critical and jump to next error
   useHotkeys(
     "tab",
-    (e) => {
+    async (e) => {
       e.preventDefault();
       if (activeCell && activeCellStatus) {
         if (activeCellStatus.state === "ai-suggestion") {
-          applySuggestion(activeCell.rowId, activeCell.columnKey);
+          await applySuggestion(activeCell.rowId, activeCell.columnKey);
         } else if (activeCellStatus.state === "duplicate") {
           resolveDuplicate(activeCell.rowId, activeCell.columnKey, "proceed");
         }
