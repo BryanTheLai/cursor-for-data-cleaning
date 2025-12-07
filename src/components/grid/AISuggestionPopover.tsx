@@ -357,19 +357,21 @@ export function AISuggestionPopover({
                 </>
               )}
 
-              {/* Skip row for missing or other critical cases */}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  resolveDuplicate(rowId, columnKey, "skip");
-                  setActiveCell(null);
-                }}
-                className="flex-1 text-[#fb73ff] border-[#fb73ff]/60 hover:bg-[#fb73ff]/10 hover:text-black"
-              >
-                <X className="h-3 w-3 mr-1" />
-                Skip Row
-              </Button>
+              {/* Skip row - only for non-missing critical cases (sanctioned, PDF mismatch, etc.) */}
+              {status.source !== "missing" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    resolveDuplicate(rowId, columnKey, "skip");
+                    setActiveCell(null);
+                  }}
+                  className="flex-1 text-[#fb73ff] border-[#fb73ff]/60 hover:bg-[#fb73ff]/10 hover:text-black"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Skip Row
+                </Button>
+              )}
               
               {/* Override reason input */}
               {showOverrideInput && (

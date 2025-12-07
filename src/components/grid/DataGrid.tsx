@@ -146,7 +146,8 @@ export function DataGrid() {
     ["ai-suggestion", "duplicate", "critical"].includes(activeCellStatus.state) &&
     !!anchorEl;
 
-  // Tab to accept suggestion / proceed past duplicate/critical and jump to next error
+  // Tab to accept suggestion / proceed past duplicate and jump to next error
+  // Flow: AI suggestions (auto-fix) -> duplicates (auto-proceed) -> critical (just navigate, no auto-action)
   useHotkeys(
     "tab",
     async (e) => {
@@ -156,10 +157,10 @@ export function DataGrid() {
           await applySuggestion(activeCell.rowId, activeCell.columnKey);
         } else if (activeCellStatus.state === "duplicate") {
           resolveDuplicate(activeCell.rowId, activeCell.columnKey, "proceed");
-        } else if (activeCellStatus.state === "critical") {
-          resolveDuplicate(activeCell.rowId, activeCell.columnKey, "skip");
         }
+        // Critical states: no auto-action, just navigate to next
       }
+      // Always jump to next error (prioritized: AI -> duplicate -> critical)
       jumpToNextError();
     },
     { enableOnFormTags: true },

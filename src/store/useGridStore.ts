@@ -620,50 +620,58 @@ export const useGridStore = create<GridState>((set, get) => {
 
   jumpToNextError: () => {
     const { rows, activeCell, columns } = get();
-    const errorStates: CellStatus["state"][] = ["ai-suggestion", "duplicate", "critical"];
+    // Priority order: easy fixes first (AI suggestions), then duplicates, then critical (manual)
+    const priorityOrder: CellStatus["state"][] = ["ai-suggestion", "duplicate", "critical"];
     
-    let startRowIndex = 0;
-    let startColIndex = 0;
-
-    if (activeCell) {
-      startRowIndex = rows.findIndex((r) => r.id === activeCell.rowId);
-      startColIndex = columns.findIndex((c) => c.key === activeCell.columnKey);
-      startColIndex++;
-      if (startColIndex >= columns.length) {
-        startColIndex = 0;
-        startRowIndex++;
-      }
-    }
-
-    for (let i = startRowIndex; i < rows.length; i++) {
-      const row = rows[i];
-      const colStart = i === startRowIndex ? startColIndex : 0;
-      for (let j = colStart; j < columns.length; j++) {
-        const col = columns[j];
-        const status = row.status[col.key];
-        if (status && errorStates.includes(status.state)) {
-          const nextCell = { rowId: row.id, columnKey: col.key };
-          set({ activeCell: nextCell });
-          return nextCell;
-        }
-      }
-    }
-
-    for (let i = 0; i < startRowIndex; i++) {
+    // Collect all errors with their positions
+    const allErrors: { rowId: string; columnKey: string; state: CellStatus["state"]; rowIndex: number; colIndex: number }[] = [];
+    
+    for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       for (let j = 0; j < columns.length; j++) {
         const col = columns[j];
         const status = row.status[col.key];
-        if (status && errorStates.includes(status.state)) {
-          const nextCell = { rowId: row.id, columnKey: col.key };
-          set({ activeCell: nextCell });
-          return nextCell;
+        if (status && priorityOrder.includes(status.state)) {
+          allErrors.push({
+            rowId: row.id,
+            columnKey: col.key,
+            state: status.state,
+            rowIndex: i,
+            colIndex: j,
+          });
         }
       }
     }
-
-    set({ activeCell: null });
-    return null;
+    
+    if (allErrors.length === 0) {
+      set({ activeCell: null });
+      return null;
+    }
+    
+    // Sort by priority first (ai-suggestion < duplicate < critical), then by position
+    allErrors.sort((a, b) => {
+      const priorityA = priorityOrder.indexOf(a.state);
+      const priorityB = priorityOrder.indexOf(b.state);
+      if (priorityA !== priorityB) return priorityA - priorityB;
+      if (a.rowIndex !== b.rowIndex) return a.rowIndex - b.rowIndex;
+      return a.colIndex - b.colIndex;
+    });
+    
+    // Find current position in the sorted list
+    let currentIndex = -1;
+    if (activeCell) {
+      currentIndex = allErrors.findIndex(
+        (e) => e.rowId === activeCell.rowId && e.columnKey === activeCell.columnKey
+      );
+    }
+    
+    // Get next error (wrap around)
+    const nextIndex = (currentIndex + 1) % allErrors.length;
+    const nextError = allErrors[nextIndex];
+    
+    const nextCell = { rowId: nextError.rowId, columnKey: nextError.columnKey };
+    set({ activeCell: nextCell });
+    return nextCell;
   },
 
   undoLastChange: (rowId, columnKey) => {
