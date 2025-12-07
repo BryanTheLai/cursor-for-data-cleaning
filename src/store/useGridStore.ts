@@ -122,15 +122,36 @@ export const useGridStore = create<GridState>((set, get) => {
     }
 
     for (const error of errors) {
-      const needsForm = error.severity === "red" || error.message.toLowerCase().includes("unknown bank");
+      const previousStatus = row.status[error.column];
+      const valueUnchanged = updatedData[error.column] === row.data[error.column];
+      if (valueUnchanged && previousStatus?.state !== "critical") {
+        continue;
+      }
+      const lowerMessage = error.message.toLowerCase();
+      const isMissingSource = lowerMessage.includes("missing") || lowerMessage.includes("required");
+      const needsForm = error.severity === "red" || lowerMessage.includes("unknown bank");
       nextStatus[error.column] = {
         state: needsForm ? "critical" : "ai-suggestion",
         message: needsForm ? "Request via WhatsApp form" : error.message,
-        source: error.message.includes("Missing") ? "missing" : "ai",
+        source: isMissingSource ? "missing" : "ai",
         suggestion: error.suggestion,
         confidence: error.confidence,
       };
     }
+
+    Object.keys(row.status).forEach((key) => {
+      const previousStatus = row.status[key];
+      if (!previousStatus) return;
+      const valueUnchanged = updatedData[key] === row.data[key];
+      const isMissingCritical = previousStatus.state === "critical" && previousStatus.source === "missing";
+      if (!valueUnchanged || !isMissingCritical) return;
+
+      const current = nextStatus[key];
+      const stillMissingCritical = current?.state === "critical" && current.source === "missing";
+      if (!stillMissingCritical) {
+        nextStatus[key] = previousStatus;
+      }
+    });
 
     return nextStatus;
   };
@@ -345,6 +366,7 @@ export const useGridStore = create<GridState>((set, get) => {
         }
 
         const ruleResult = processRowWithRules(data, activeRuleSet);
+        const normalizedData = { ...data, ...ruleResult.cleaned };
 
         for (const change of ruleResult.changes) {
           status[change.column] = {
@@ -370,23 +392,9 @@ export const useGridStore = create<GridState>((set, get) => {
           }
         }
 
-        const errorCount = ruleResult.errors.length;
-        if (errorCount >= 2) {
-          Object.keys(data).forEach((key) => {
-            if (key === "phone") return;
-            if (!status[key]) {
-              status[key] = {
-                state: "critical",
-                message: "Request via WhatsApp form",
-                source: "missing",
-              };
-            }
-          });
-        }
-
-        const name = data.name || '';
-        const amount = ruleResult.cleaned.amount || data.amount || '';
-        const accountNumber = ruleResult.cleaned.accountNumber || data.accountNumber || '';
+        const name = normalizedData.name || '';
+        const amount = normalizedData.amount || '';
+        const accountNumber = normalizedData.accountNumber || '';
         
         if (name && amount) {
           const duplicateMatch = checkForDuplicate(name, amount, accountNumber, rowId);
@@ -417,13 +425,14 @@ export const useGridStore = create<GridState>((set, get) => {
           if (phoneRule?.transform) {
             const { value: normalizedPhone } = phoneRule.transform(phoneNumber);
             phoneNumber = normalizedPhone;
+            normalizedData.phone = normalizedPhone;
           }
         }
 
         return {
           id: rowId,
           rowIndex: index + 1,
-          data,
+          data: normalizedData,
           status,
           locked: false,
           phoneNumber,
@@ -739,7 +748,7 @@ export const useGridStore = create<GridState>((set, get) => {
     const { rows, whatsappRequests, workspaceId } = get();
     const row = rows.find((r) => r.id === rowId);
     
-    const phoneNumber = options?.phoneOverride || row?.data.phone || row?.phoneNumber || DEFAULT_PHONE_FALLBACK;
+    const phoneNumber = options?.phoneOverride || row?.data.phone || row?.phoneNumber;
     if (!row || !phoneNumber) {
       console.warn("[STORE] Cannot send WhatsApp - no phone number", { 
         hasRow: !!row, 

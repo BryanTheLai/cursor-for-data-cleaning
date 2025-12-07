@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
-import { Upload, Check, Loader2, Download, Sparkles, Command, Zap, Settings2, MessageCircle, ShieldCheck } from "lucide-react";
+import { Upload, Check, Loader2, Download, Sparkles, Command, Zap, Settings2, MessageCircle, ShieldCheck, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGridStore } from "@/store/useGridStore";
 import { ImportWizard, type ImportResult } from "@/components/ImportWizard";
@@ -10,10 +10,15 @@ import { CommandPalette } from "@/components/ui/CommandPalette";
 import { ExportPreview } from "@/components/ui/ExportPreview";
 import { RulesSettings } from "@/components/ui/RulesSettings";
 import { PayModal } from "@/components/ui/PayModal";
+import { GuideModal } from "@/components/ui/GuideModal";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { usePathname } from "next/navigation";
 
 type FilterType = "all" | "ai-suggestion" | "duplicate" | "critical";
+const TWILIO_JOIN_CODE = process.env.NEXT_PUBLIC_TWILLIO_CODE || "join do-wooden";
+const TWILIO_SANDBOX_NUMBER = process.env.NEXT_PUBLIC_TWILIO_WHATSAPP_NUMBER || "+1 415 523 8886";
+const TWILIO_BANNER_KEY = "twilio-banner-dismissed-v2";
 
 export function Header() {
   const { rows, filter, setFilter, fileName, processImportResult, isImporting, runAmlScan, amlScanStatus } = useGridStore();
@@ -22,7 +27,23 @@ export function Header() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isRulesSettingsOpen, setIsRulesSettingsOpen] = useState(false);
   const [isPayOpen, setIsPayOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [showTwilioBanner, setShowTwilioBanner] = useState(false);
   const { addToast } = useToast();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const dismissed = window.localStorage.getItem(TWILIO_BANNER_KEY);
+    setShowTwilioBanner(dismissed !== "true");
+  }, []);
+
+  const dismissTwilioBanner = () => {
+    setShowTwilioBanner(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(TWILIO_BANNER_KEY, "true");
+    }
+  };
 
   const stats = useMemo(() => {
     let suggestions = 0;
@@ -77,6 +98,29 @@ export function Header() {
 
   return (
     <>
+      {pathname === "/demo" && showTwilioBanner && (
+        <div className="sticky top-0 z-50">
+          <div className="flex items-center gap-3 px-4 py-2 bg-[#0000e6] text-white text-sm">
+            <div className="flex-1 min-w-0">
+              <span className="font-semibold mr-2">WhatsApp sandbox</span>
+              <span className="text-white/80">
+                To receive WhatsApp messages on your phone, send
+                <span className="mx-1 font-semibold text-white">“{TWILIO_JOIN_CODE}”</span>
+                to
+                <span className="mx-1 font-semibold text-white">{TWILIO_SANDBOX_NUMBER}</span>
+                and keep this tab open.
+              </span>
+            </div>
+            <button
+              onClick={dismissTwilioBanner}
+              className="px-2 py-1 text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="sticky top-0 z-40 bg-white">
         <div className="flex items-center gap-3 px-4 h-10">
           {/* Logo */}
@@ -150,6 +194,38 @@ export function Header() {
 
           {/* Actions */}
           <div className="flex items-center gap-1 shrink-0">
+            <a
+              href="/templates/payroll_over_columns.csv"
+              download
+              className="inline-flex"
+              title="Download sample payroll template to try the demo"
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-3 text-xs font-semibold bg-gradient-to-r from-[#0000e6] via-[#00ddd7] to-[#fb73ff] text-white hover:opacity-90 shadow-sm"
+              >
+                <Download className="h-3.5 w-3.5 mr-1" />
+                Use Template
+                <span className="ml-2 rounded-full bg-white/20 px-2 py-[2px] text-[10px] font-bold tracking-wide uppercase">
+                  Demo CSV
+                </span>
+              </Button>
+            </a>
+
+            {pathname === "/demo" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() => setIsGuideOpen(true)}
+                title="Open Ryt Flow guide"
+              >
+                <BookOpen className="h-3.5 w-3.5 mr-1 text-[#0000e6]" />
+                Guide
+              </Button>
+            )}
+
             <button
               onClick={() => setIsRulesSettingsOpen(true)}
               className="flex items-center gap-1 px-1.5 py-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
@@ -263,6 +339,11 @@ export function Header() {
       <PayModal
         isOpen={isPayOpen}
         onClose={() => setIsPayOpen(false)}
+      />
+
+      <GuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
       />
     </>
   );

@@ -134,25 +134,67 @@ function matchEnum(value: string, options: EnumOption[]): EnumOption | null {
   return null;
 }
 
-function transformName(value: string): { value: string; changed: boolean; message?: string } {
-  if (!value) return { value: '', changed: false };
-  
-  const original = value;
-  let transformed = value
-    .replace(/^(mr\.?|mrs\.?|ms\.?|dr\.?|prof\.?)\s+/i, '')
-    .trim();
-  
-  transformed = transformed
+function toTitleCase(str: string): string {
+  return str
     .toLowerCase()
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+}
+
+function transformName(value: string): { value: string; changed: boolean; message?: string } {
+  if (!value) return { value: '', changed: false };
   
+  const original = value;
+  const cleaned = toTitleCase(value.trim())
+    .replace(/^(mr\.?|mrs\.?|ms\.?|dr\.?|prof\.?)\s+/i, '')
+    .trim();
+  
+  const transformed = cleaned;
   const changed = transformed !== original;
+  
   return {
     value: transformed,
     changed,
     message: changed ? 'Capitalized and removed titles' : undefined,
+  };
+}
+
+function expandScientificNotation(value: string): string | null {
+  const match = value.trim().match(/^(\d+(?:\.\d+)?)[eE]\+?(\d+)$/);
+  if (!match) return null;
+
+  const [, base, expStr] = match;
+  const exp = parseInt(expStr, 10);
+  if (Number.isNaN(exp)) return null;
+
+  const [intPart, fracPart = ''] = base.split('.');
+  const digits = `${intPart}${fracPart}`;
+  if (!digits) return null;
+
+  const shift = exp - fracPart.length;
+  if (shift < 0) return null;
+
+  return `${digits}${'0'.repeat(shift)}`;
+}
+
+function transformAccountNumber(value: string): { value: string; changed: boolean; message?: string } {
+  if (!value) return { value: '', changed: false };
+  
+  const expanded = expandScientificNotation(value);
+  const baseValue = expanded ?? value;
+  const digitsOnly = baseValue.replace(/[\s\-\.]/g, '');
+  
+  if (!/^\d+$/.test(digitsOnly)) {
+    return { value: value, changed: false };
+  }
+  
+  const changed = expanded !== null || digitsOnly !== value;
+  
+  return {
+    value: digitsOnly,
+    changed,
+    message: changed ? (expanded ? 'Converted from scientific notation' : 'Removed dashes/spaces - digits only') : undefined,
   };
 }
 
@@ -176,25 +218,6 @@ function transformAmount(value: string): { value: string; changed: boolean; mess
     value: transformed,
     changed,
     message: changed ? 'Removed currency symbol, standardized decimal places' : undefined,
-  };
-}
-
-function transformAccountNumber(value: string): { value: string; changed: boolean; message?: string } {
-  if (!value) return { value: '', changed: false };
-  
-  const original = value;
-  const digitsOnly = value.replace(/[\s\-\.]/g, '');
-  
-  if (!/^\d+$/.test(digitsOnly)) {
-    return { value: original, changed: false };
-  }
-  
-  const changed = digitsOnly !== original;
-  
-  return {
-    value: digitsOnly,
-    changed,
-    message: changed ? 'Removed dashes/spaces - digits only' : undefined,
   };
 }
 
@@ -266,6 +289,14 @@ function transformPhone(value: string, country: string = 'MY'): { value: string;
   if (cleaned.startsWith('+')) {
     return { value: cleaned, changed: cleaned !== original, message: cleaned !== original ? 'Cleaned phone format' : undefined };
   }
+
+  if (/^60\d{8,13}$/.test(cleaned)) {
+    return {
+      value: `+${cleaned}`,
+      changed: cleaned !== original,
+      message: cleaned !== original ? 'Normalized country code format' : undefined,
+    };
+  }
   
   const countryCodes: Record<string, string> = {
     MY: '+60',
@@ -303,7 +334,7 @@ function validateRequired(value: string): ValidationResult {
 function validateAccountNumber(value: string): ValidationResult {
   if (!value) return { valid: true };
   
-  const digitsOnly = value.replace(/[\s\-]/g, '');
+  const digitsOnly = value.replace(/\D/g, '');
   
   if (!/^\d+$/.test(digitsOnly)) {
     return {
@@ -435,6 +466,7 @@ export const PAYROLL_RULES: RuleSet = {
             valid: false,
             message: 'Date must be in YYYY-MM-DD format',
             severity: 'yellow',
+            suggestion: 'Use YYYY-MM-DD',
           };
         }
         return { valid: true };
@@ -451,15 +483,27 @@ export const PAYROLL_RULES: RuleSet = {
         if (!value) return { valid: true };
         const cleaned = value.replace(/[\s\-]/g, '');
         const phoneRegex = /^\+60\d{8,11}$/;
-        if (!phoneRegex.test(cleaned)) {
+
+        if (phoneRegex.test(cleaned)) {
+          return { valid: true };
+        }
+
+        const candidate = transformPhone(value, 'MY').value.replace(/[\s\-]/g, '');
+        if (phoneRegex.test(candidate)) {
           return {
             valid: false,
             message: 'Invalid phone number format',
-            severity: 'red',
-            suggestion: 'Request via WhatsApp form',
+            severity: 'yellow',
+            suggestion: candidate,
           };
         }
-        return { valid: true };
+
+        return {
+          valid: false,
+          message: 'Invalid phone number format',
+          severity: 'red',
+          suggestion: undefined,
+        };
       },
     },
   ],

@@ -50,9 +50,10 @@ export const GridCell = forwardRef<HTMLTableCellElement, GridCellProps>(
     // Track state transitions for animations
     useEffect(() => {
       if (prevState && status?.state && prevState !== status.state) {
-        // Determine which transition animation to use
         if (status.state === "validated" || status.state === "clean") {
-          if (prevState === "critical") {
+          if (prevState === "live-update") {
+            setTransitionAnimation(null);
+          } else if (prevState === "critical") {
             setTransitionAnimation("animate-red-to-green");
           } else if (prevState === "duplicate") {
             setTransitionAnimation("animate-orange-to-green");
@@ -62,7 +63,6 @@ export const GridCell = forwardRef<HTMLTableCellElement, GridCellProps>(
             setTransitionAnimation("animate-validated-pulse");
           }
           
-          // Clear animation after it completes
           const timer = setTimeout(() => setTransitionAnimation(null), 1500);
           return () => clearTimeout(timer);
         } else if (status.state === "skipped") {

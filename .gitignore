@@ -37,5 +37,5 @@ assets
 .env
 .cursor
 PITCH.md
-test-data
+
 .demo-store.json

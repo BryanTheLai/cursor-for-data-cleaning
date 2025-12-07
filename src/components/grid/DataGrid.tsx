@@ -156,6 +156,8 @@ export function DataGrid() {
           await applySuggestion(activeCell.rowId, activeCell.columnKey);
         } else if (activeCellStatus.state === "duplicate") {
           resolveDuplicate(activeCell.rowId, activeCell.columnKey, "proceed");
+        } else if (activeCellStatus.state === "critical") {
+          resolveDuplicate(activeCell.rowId, activeCell.columnKey, "skip");
         }
       }
       jumpToNextError();

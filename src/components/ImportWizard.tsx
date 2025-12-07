@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { Upload, FileSpreadsheet, ArrowRight, X, Check, AlertTriangle, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -237,14 +237,24 @@ function MappingRow({
           </>
         )}
         
-        <div onClick={() => setIsSelecting(!isSelecting)} className="cursor-pointer">
+        <button
+          type="button"
+          onClick={() => setIsSelecting(!isSelecting)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setIsSelecting(!isSelecting);
+            }
+          }}
+          className="w-full text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+        >
           <TargetPill
             name={targetCol?.label || ""}
             required={targetCol?.required}
             isEmpty={!targetKey}
             isSelected={isSelecting}
           />
-        </div>
+        </button>
       </div>
 
       <button
@@ -270,6 +280,7 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   
   const [manualMappings, setManualMappings] = useState<Record<string, string | null>>({});
   const [ignoredColumns, setIgnoredColumns] = useState<Set<string>>(new Set());
@@ -534,14 +545,19 @@ export function ImportWizard({ isOpen, onClose, onImportComplete }: ImportWizard
                   </p>
                   <label className="inline-block">
                     <input
+                      ref={fileInputRef}
                       type="file"
                       accept=".csv,.xlsx,.xls"
                       onChange={handleFileSelect}
                       className="hidden"
                     />
-                    <span className="px-4 py-2 bg-blue-600 text-white  cursor-pointer hover:bg-blue-700 transition-colors">
+                    <Button
+                      type="button"
+                      className="px-4 py-2"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
                       Browse Files
-                    </span>
+                    </Button>
                   </label>
                 </>
               )}

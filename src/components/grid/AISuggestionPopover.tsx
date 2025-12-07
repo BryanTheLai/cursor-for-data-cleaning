@@ -346,7 +346,7 @@ export function AISuggestionPopover({
                     size="sm"
                     variant="outline"
                     onClick={() => setShowOverrideInput(true)}
-                    className="flex-1 text-amber-600 border-amber-300 hover:bg-amber-50"
+                    className="flex-1 text-amber-600 border-amber-300 hover:bg-amber-50 hover:text-black"
                   >
                     <AlertTriangle className="h-3 w-3 mr-1" />
                     Override with Reason
@@ -362,7 +362,7 @@ export function AISuggestionPopover({
                   resolveDuplicate(rowId, columnKey, "skip");
                   setActiveCell(null);
                 }}
-                className="flex-1 text-[#fb73ff] border-[#fb73ff]/60 hover:bg-[#fb73ff]/10"
+                className="flex-1 text-[#fb73ff] border-[#fb73ff]/60 hover:bg-[#fb73ff]/10 hover:text-black"
               >
                 <X className="h-3 w-3 mr-1" />
                 Skip Row
@@ -434,7 +434,7 @@ export function AISuggestionPopover({
                   resolveDuplicate(rowId, columnKey, "skip");
                   setActiveCell(null);
                 }} 
-                className="flex-1 text-orange-600 border-orange-300 hover:bg-orange-50"
+                className="flex-1 text-orange-600 border-orange-300 hover:bg-orange-50 hover:text-black"
                 title="Remove from batch - it's a duplicate"
               >
                 <X className="h-3 w-3 mr-1" />
