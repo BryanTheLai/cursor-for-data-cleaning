@@ -297,11 +297,14 @@ export function AISuggestionPopover({
               {/* WhatsApp option for missing fields */}
               {status.source === "missing" && hasPhoneNumber && (
                 alreadySent || sendStatus === "success" ? (
-                  <div className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs bg-green-50 border border-green-200 text-green-700">
-                    <CheckCircle className="h-3 w-3" />
+                  <div 
+                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-xs bg-green-50 border border-green-200 text-green-700 h-8"
+                    title={existingRequest?.status === "pending" ? "Waiting for response" : "Response received"}
+                  >
+                    <CheckCircle className="h-3 w-3 shrink-0" />
                     <span>Sent {existingRequest ? formatRelativeTime(existingRequest.sentAt) : "just now"}</span>
                     {existingRequest?.status === "pending" && (
-                      <span className="text-orange-500 font-medium">• Waiting</span>
+                      <span className="text-orange-500 font-medium shrink-0">•</span>
                     )}
                   </div>
                 ) : (
